@@ -1,0 +1,47 @@
+<!--suppress PluginXmlValidity -->
+<idea-plugin>
+    <id>io.infracost.plugins.jetbrains-infracost</id>
+    <name>Infracost</name>
+    <vendor email="owen@infracost.io" url="https://infracost.io">Infracost</vendor>
+    <description><![CDATA[infracost integration for Jetbrains tools. <br/>
+
+Scan your Terraform infrastructure as code files with Infracost and then navigate with the handy Findings Explorer.<br/>
+
+Additional help and context is provided in the Findings help pane for each issue identified.
+]]></description>
+    <change-notes><![CDATA[v1.1.0 - Fix rendering of help menu and links<br />
+v1.0 - Initial release<br />
+]]></change-notes>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Infracost: Projects Overview" secondary="true"
+                    anchor="left" icon="/icons/infracost.svg"
+                    factoryClass="io.infracost.plugins.infracost.ui.InfracostWindowFactory"/>
+        <notificationGroup id="Infracost Notifications" displayType="BALLOON"/>
+        <applicationConfigurable parentId="tools"
+                                 instance="io.infracost.plugins.infracost.settings.InfracostSettingsConfigurable"
+                                 id="io.infracost.plugins.infracost.settings.InfracostSettingsConfigurable"
+                                 displayName="Infracost: Settings"/>
+        <applicationService serviceImplementation="io.infracost.plugins.infracost.settings.InfracostSettingState"/>
+        <codeInsight.codeVisionProvider
+                implementation="io.infracost.plugins.infracost.codeinsight.InfracostCodeVisionProvider"/>
+    </extensions>
+    <applicationListeners>
+        <listener class="io.infracost.plugins.infracost.listeners.InfracostFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </applicationListeners>
+    <actions>
+        <action id="io.infracost.plugins.infracost.actions.RunInfracostAction" icon="AllIcons.Debugger.ThreadRunning"
+                class="io.infracost.plugins.infracost.actions.RunInfracostAction" text="Run Infracost"
+                description="Run infracost now to update results"/>
+        <action id="io.infracost.plugins.infracost.actions.ClearResultsAction"
+                icon="CollaborationToolsIcons.DeleteHovered"
+                class="io.infracost.plugins.infracost.actions.ClearResultsAction" text="Clear Results"
+                description="Clear results window"/>
+        <action id="io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction" icon="AllIcons.General.Settings"
+                class="io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction" text="Show Settings"
+                description="Show Settings dialog"/>
+    </actions>
+</idea-plugin>
