@@ -6,16 +6,13 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
-import com.intellij.openapi.ui.VerticalFlowLayout
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.treeStructure.Tree
 import io.infracost.plugins.infracost.actions.CheckAuthAction
 import io.infracost.plugins.infracost.actions.ResultProcessor
 import io.infracost.plugins.infracost.actions.RunAuthAction
 import io.infracost.plugins.infracost.model.Resource
-import java.awt.Panel
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.nio.file.Paths
@@ -111,6 +108,10 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
         for (path in paths) {
             tree.expandPath(path)
         }
+    }
+
+    fun clearModel() {
+     this.root?.model = null
     }
 
     fun refreshModel() {
