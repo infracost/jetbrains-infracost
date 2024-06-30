@@ -107,7 +107,7 @@ tasks {
     }
 
     publishPlugin {
-        dependsOn("patchChangelog")
+        dependsOn("patchChangelog", "signPlugin")
         token = environment("PUBLISH_TOKEN")
         channels = properties("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
     }
