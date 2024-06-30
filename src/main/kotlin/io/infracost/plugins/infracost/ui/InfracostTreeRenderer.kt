@@ -1,5 +1,6 @@
 package io.infracost.plugins.infracost.ui
 
+import com.intellij.ui.JBColor
 import io.infracost.plugins.infracost.icons.InfracostIcons
 import io.infracost.plugins.infracost.model.File
 import io.infracost.plugins.infracost.model.InfracostProject

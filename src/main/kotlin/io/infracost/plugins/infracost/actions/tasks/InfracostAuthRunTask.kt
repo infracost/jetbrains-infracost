@@ -12,7 +12,6 @@ import java.io.InputStreamReader
 import java.util.function.Consumer
 import javax.swing.SwingUtilities
 
-@Suppress("DialogTitleCapitalization")
 internal class InfracostAuthRunTask(
     private val project: Project,
     private val callback: Consumer<Boolean>

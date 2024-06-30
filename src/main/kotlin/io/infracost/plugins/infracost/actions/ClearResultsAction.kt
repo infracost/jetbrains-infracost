@@ -20,6 +20,7 @@ class ClearResultsAction : AnAction() {
     val toolWindow = ToolWindowManager.getInstance(project!!).getToolWindow(TOOL_WINDOW_ID)
     val content = toolWindow!!.contentManager.getContent(0)
     val infracostWindow = content!!.component as InfracostWindow
+    infracostWindow.clearModel()
 
     infracostWindow.redraw()
   }

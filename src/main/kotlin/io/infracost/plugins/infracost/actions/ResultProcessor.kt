@@ -14,8 +14,7 @@ import java.io.File
 import java.io.IOException
 
 /**
- * ResultProcessor takes the results finding and unmarshalls to object Then updates the findings
- * window
+ * ResultProcessor takes the results and unmarshal to object then sets the model for the tree window
  */
 object ResultProcessor {
 

@@ -15,7 +15,7 @@ class InfracostSettingsComponent {
 
   init {
     infracostPath.addBrowseFolderListener(
-        "infracost binary path",
+        "Infracost binary path",
         "Set the explicit path to infracost",
         ProjectManager.getInstance().defaultProject,
         FileChooserDescriptorFactory.createSingleFileDescriptor())
