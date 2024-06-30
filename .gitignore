@@ -25,4 +25,9 @@ build
 hs_err_pid*
 replay_pid*
 
-.gradle/*
+.gradle
+/private.pem
+/private_encrypted.pem
+/chain.crt
+
+/src/main/resources/binaries/*
