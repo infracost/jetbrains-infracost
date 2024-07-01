@@ -7,12 +7,15 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.ui.JBColor
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.treeStructure.Tree
 import io.infracost.plugins.infracost.actions.CheckAuthAction
 import io.infracost.plugins.infracost.actions.ResultProcessor
 import io.infracost.plugins.infracost.actions.RunAuthAction
 import io.infracost.plugins.infracost.model.Resource
+import java.awt.Cursor
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.nio.file.Paths
@@ -34,6 +37,7 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
     fun updatePanel(isAuthenticated: Boolean) {
         if (isAuthenticated) {
             this.authenticated = true
+            this.removeAll()
             configureToolbar()
         } else {
             this.authenticated = false
@@ -42,14 +46,20 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
     }
 
     private fun showLoginButton() {
-        val label = "You are not connected to Infracost. Click the button below to connect."
-        val button = JButton("Connect to Infracost")
-        button.addActionListener { RunAuthAction.runAuth(project) }
+        val label = "First we need to"
+        val hyperlink = JBLabel("connect to Infracost")
+        hyperlink.foreground = JBColor.BLUE
+        hyperlink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR))
+        hyperlink.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                RunAuthAction.runAuth(project)
+            }
+        })
 
         val panel = JPanel()
+        panel.border = BorderFactory.createEmptyBorder(20,10,0,10)
         panel.add(JLabel(label))
-        panel.add(button)
-
+        panel.add(hyperlink)
         this.add(JBScrollPane(panel))
     }
 

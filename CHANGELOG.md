@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.0.2] - 2024-07-01
+### Fixed
+- Update linux binaries path
+- Make the "connect to Infracost" link more simple
+
 ## [1.0.1] - 2024-07-01
 ### Fixed
 - Updates to readme

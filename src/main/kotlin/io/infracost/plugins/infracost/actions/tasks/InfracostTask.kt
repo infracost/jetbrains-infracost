@@ -54,7 +54,7 @@ abstract class InfracostTask(project: Project, taskTitle: String, cancellable: B
       } else if (osName.contains("mac")) {
         resourcePath = "/binaries/macos/${arch}/infracost"
       } else if (osName.contains("nix") || osName.contains("nux") || osName.contains("aix")) {
-        resourcePath = "/linux/${arch}/infracost"
+        resourcePath = "/binaries/linux/${arch}/infracost"
       }
 
       if (resourcePath != null) {
