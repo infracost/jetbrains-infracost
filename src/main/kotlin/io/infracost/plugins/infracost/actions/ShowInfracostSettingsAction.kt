@@ -8,9 +8,9 @@ const val INFRACOST_SETTINGS_ID = "Infracost: Settings"
 
 class ShowInfracostSettingsAction : AnAction() {
 
-  override fun actionPerformed(e: AnActionEvent) {
-    val project = e.project ?: return
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
 
-    ShowSettingsUtil.getInstance().showSettingsDialog(project, INFRACOST_SETTINGS_ID)
-  }
+        ShowSettingsUtil.getInstance().showSettingsDialog(project, INFRACOST_SETTINGS_ID)
+    }
 }

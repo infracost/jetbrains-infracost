@@ -13,38 +13,41 @@ internal class InfracostCheckAuthRunTask(
     private val project: Project,
     private val callback: Consumer<String>
 ) : InfracostTask(project, "Checking Infracost Auth Status", false), Runnable {
-  override fun run(indicator: ProgressIndicator) {
-    this.run()
-  }
-
-  override fun run() {
-    if (!ensureBinaryAvailable()) {
-      InfracostNotificationGroup.notifyError(project, "Infracost binary not found")
-      return
+    override fun run(indicator: ProgressIndicator) {
+        this.run()
     }
 
-    val commandParams: MutableList<String?> = ArrayList()
-    commandParams.add(binaryFile)
-    commandParams.add("configure")
-    commandParams.add("get")
-    commandParams.add("api_key")
+    override fun run() {
+        if (!ensureBinaryAvailable()) {
+            InfracostNotificationGroup.notifyError(project, "Infracost binary not found")
+            return
+        }
 
-    val commandLine =
-        GeneralCommandLine(commandParams)
-            .withEnvironment(
-                mapOf(
-                    "INFRACOST_SKIP_UPDATE_CHECK" to "true",
-                    "INFRACOST_GRAPH_EVALUATOR" to "true",
-                    "INFRACOST_NO_COLOR" to "true"))
+        val commandParams: MutableList<String?> = ArrayList()
+        commandParams.add(binaryFile)
+        commandParams.add("configure")
+        commandParams.add("get")
+        commandParams.add("api_key")
 
-    try {
-      Runtime.getRuntime().exec(commandLine.commandLineString)
-      val result =
-          ScriptRunnerUtil.getProcessOutput(
-              commandLine, ScriptRunnerUtil.STDOUT_OR_STDERR_OUTPUT_KEY_FILTER, 100000000)
-      SwingUtilities.invokeLater { callback.accept(result) }
-    } catch (e: ExecutionException) {
-      InfracostNotificationGroup.notifyError(project, e.localizedMessage)
+        val commandLine =
+            GeneralCommandLine(commandParams)
+                .withEnvironment(
+                    mapOf(
+                        "INFRACOST_SKIP_UPDATE_CHECK" to "true",
+                        "INFRACOST_GRAPH_EVALUATOR" to "true",
+                        "INFRACOST_NO_COLOR" to "true"
+                    )
+                )
+
+        try {
+            Runtime.getRuntime().exec(commandLine.commandLineString)
+            val result =
+                ScriptRunnerUtil.getProcessOutput(
+                    commandLine, ScriptRunnerUtil.STDOUT_OR_STDERR_OUTPUT_KEY_FILTER, 100000000
+                )
+            SwingUtilities.invokeLater { callback.accept(result) }
+        } catch (e: ExecutionException) {
+            InfracostNotificationGroup.notifyError(project, e.localizedMessage)
+        }
     }
-  }
 }

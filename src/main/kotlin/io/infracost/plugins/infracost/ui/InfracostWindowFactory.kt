@@ -7,10 +7,10 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 
 class InfracostWindowFactory : ToolWindowFactory {
-  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    val infracostWindow = InfracostWindow(project)
-    val contentFactory = ApplicationManager.getApplication().getService(ContentFactory::class.java)
-    val content = contentFactory.createContent(infracostWindow.content, "", false)
-    toolWindow.contentManager.addContent(content)
-  }
+    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        val infracostWindow = InfracostWindow(project)
+        val contentFactory = ApplicationManager.getApplication().getService(ContentFactory::class.java)
+        val content = contentFactory.createContent(infracostWindow.content, "", false)
+        toolWindow.contentManager.addContent(content)
+    }
 }

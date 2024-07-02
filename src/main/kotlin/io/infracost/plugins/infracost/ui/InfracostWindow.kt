@@ -57,7 +57,7 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
         })
 
         val panel = JPanel()
-        panel.border = BorderFactory.createEmptyBorder(20,10,0,10)
+        panel.border = BorderFactory.createEmptyBorder(20, 10, 0, 10)
         panel.add(JLabel(label))
         panel.add(hyperlink)
         this.add(JBScrollPane(panel))
@@ -74,11 +74,11 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
         actionGroup.add(
             actionManager.getAction("io.infracost.plugins.infracost.actions.ClearResultsAction")
         )
-//        actionGroup.add(
-//            actionManager.getAction(
-//                "io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction.kt"
-//            )
-//        )
+        actionGroup.add(
+            actionManager.getAction(
+                "io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction"
+            )
+        )
 
         val actionToolbar = actionManager.createActionToolbar("ACTION_TOOLBAR", actionGroup, true)
         actionToolbar.setOrientation(SwingConstants.VERTICAL)
@@ -121,7 +121,7 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
     }
 
     fun clearModel() {
-     this.root?.model = null
+        this.root?.model = null
     }
 
     fun refreshModel() {
@@ -156,7 +156,12 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
             val location = lastSelectedNode.metadata ?: return
             val file =
                 VirtualFileManager.getInstance()
-                    .refreshAndFindFileByNioPath(Paths.get(location.filename.toString()))
+                    .refreshAndFindFileByNioPath(
+                        Paths.get(
+                            this.project.basePath.toString(),
+                            location.filename.toString()
+                        )
+                    )
             if (file == null || !file.exists()) {
                 return
             }

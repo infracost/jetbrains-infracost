@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2024-07-02
+### Added
+- Support for config files
+- Support for usage files
+
 ## [1.0.2] - 2024-07-01
 ### Fixed
 - Update linux binaries path

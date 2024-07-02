@@ -15,63 +15,63 @@ import io.infracost.plugins.infracost.icons.InfracostIcons
 
 @Suppress("UnstableApiUsage")
 class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
-  override fun computeCodeVision(editor: Editor, uiData: Unit): CodeVisionState {
-    val document =
-        FileEditorManager.getInstance(editor.project!!).selectedTextEditor?.document
-            ?: return READY_EMPTY
-    val file =
-        FileEditorManager.getInstance(editor.project!!).selectedTextEditor?.virtualFile
-            ?: return READY_EMPTY
-    val lenses = ArrayList<Pair<TextRange, CodeVisionEntry>>()
-    return ReadAction.compute<CodeVisionState, RuntimeException> {
-      val model = ResultProcessor.model ?: return@compute READY_EMPTY
-      for (project in model.projects) {
-        for (f in project.files) {
-          if (f.filename == file.toNioPath().toString()) {
-            for (r in f.resources) {
-              val codeVisionText = String.format("Monthly cost: $%.2f", r.monthlyCost?.toFloat())
-              val codeVision =
-                  TextCodeVisionEntry(
-                      codeVisionText,
-                      id,
-                      icon = InfracostIcons.Infracost,
-                      codeVisionText,
-                      codeVisionText,
-                  )
+    override fun computeCodeVision(editor: Editor, uiData: Unit): CodeVisionState {
+        val document =
+            FileEditorManager.getInstance(editor.project!!).selectedTextEditor?.document
+                ?: return READY_EMPTY
+        val file =
+            FileEditorManager.getInstance(editor.project!!).selectedTextEditor?.virtualFile
+                ?: return READY_EMPTY
+        val lenses = ArrayList<Pair<TextRange, CodeVisionEntry>>()
+        return ReadAction.compute<CodeVisionState, RuntimeException> {
+            val model = ResultProcessor.model ?: return@compute READY_EMPTY
+            for (project in model.projects) {
+                for (f in project.files) {
+                    if (f.filename == file.toNioPath().toString()) {
+                        for (r in f.resources) {
+                            val codeVisionText = String.format("Monthly cost: $%.2f", r.monthlyCost?.toFloat())
+                            val codeVision =
+                                TextCodeVisionEntry(
+                                    codeVisionText,
+                                    id,
+                                    icon = InfracostIcons.Infracost,
+                                    codeVisionText,
+                                    codeVisionText,
+                                )
 
-              val offset = document.getLineEndOffset((r.metadata?.startLine ?: 0) - 1)
-              val range = TextRange(offset, offset)
-              lenses.add(range to codeVision)
+                            val offset = document.getLineEndOffset((r.metadata?.startLine ?: 0) - 1)
+                            val range = TextRange(offset, offset)
+                            lenses.add(range to codeVision)
+                        }
+                    }
+                }
             }
-          }
+
+            return@compute CodeVisionState.Ready(lenses)
         }
-      }
-
-      return@compute CodeVisionState.Ready(lenses)
     }
-  }
 
-  override val defaultAnchor: CodeVisionAnchorKind
-    get() = CodeVisionAnchorKind.Top
+    override val defaultAnchor: CodeVisionAnchorKind
+        get() = CodeVisionAnchorKind.Top
 
-  override val id: String
-    get() = "codevision.infracost"
+    override val id: String
+        get() = "codevision.infracost"
 
-  override val name: String
-    get() = "io.infracost.vision"
+    override val name: String
+        get() = "io.infracost.vision"
 
-  override val relativeOrderings: List<CodeVisionRelativeOrdering>
-    get() = emptyList()
+    override val relativeOrderings: List<CodeVisionRelativeOrdering>
+        get() = emptyList()
 
-  override fun precomputeOnUiThread(editor: Editor) {}
+    override fun precomputeOnUiThread(editor: Editor) {}
 }
 
 fun refresh(project: Project) {
-  ApplicationManager.getApplication().invokeLater {
-    WriteCommandAction.runWriteCommandAction(project) {
-      val document = FileEditorManager.getInstance(project).selectedTextEditor?.document
-      document?.insertString(0, " ")
-      document?.deleteString(0, 1)
+    ApplicationManager.getApplication().invokeLater {
+        WriteCommandAction.runWriteCommandAction(project) {
+            val document = FileEditorManager.getInstance(project).selectedTextEditor?.document
+            document?.insertString(0, " ")
+            document?.deleteString(0, 1)
+        }
     }
-  }
 }

@@ -13,34 +13,34 @@ import javax.swing.SwingUtilities
 
 /** RunInfracostAction executes infracost then calls update results */
 class RunAuthAction : AnAction() {
-  private var project: Project? = null
+    private var project: Project? = null
 
-  override fun actionPerformed(e: AnActionEvent) {
-    this.project = e.project
+    override fun actionPerformed(e: AnActionEvent) {
+        this.project = e.project
 
-    if (this.project == null) {
-      return
+        if (this.project == null) {
+            return
+        }
+
+        runAuth(this.project!!)
     }
 
-    runAuth(this.project!!)
-  }
-
-  companion object {
-    fun runAuth(project: Project) {
-      val runner =
-          InfracostAuthRunTask(project) { isAuthenticated ->
-            run {
-              // redraw the explorer with the updated content
-              val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID)
-              val content = toolWindow!!.contentManager.getContent(0)
-              (content!!.component as InfracostWindow).apply { updatePanel(isAuthenticated) }
+    companion object {
+        fun runAuth(project: Project) {
+            val runner =
+                InfracostAuthRunTask(project) { isAuthenticated ->
+                    run {
+                        // redraw the explorer with the updated content
+                        val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID)
+                        val content = toolWindow!!.contentManager.getContent(0)
+                        (content!!.component as InfracostWindow).apply { updatePanel(isAuthenticated) }
+                    }
+                }
+            if (SwingUtilities.isEventDispatchThread()) {
+                ProgressManager.getInstance().run(runner)
+            } else {
+                ApplicationManager.getApplication().invokeLater(runner)
             }
-          }
-      if (SwingUtilities.isEventDispatchThread()) {
-        ProgressManager.getInstance().run(runner)
-      } else {
-        ApplicationManager.getApplication().invokeLater(runner)
-      }
+        }
     }
-  }
 }
