@@ -9,19 +9,19 @@ import io.infracost.plugins.infracost.ui.TOOL_WINDOW_ID
 
 /** ClearResultsAction removes the tree and findings */
 class ClearResultsAction : AnAction() {
-  private var project: Project? = null
+    private var project: Project? = null
 
-  override fun actionPerformed(e: AnActionEvent) {
-    this.project = e.project
+    override fun actionPerformed(e: AnActionEvent) {
+        this.project = e.project
 
-    if (project == null) {
-      return
+        if (project == null) {
+            return
+        }
+        val toolWindow = ToolWindowManager.getInstance(project!!).getToolWindow(TOOL_WINDOW_ID)
+        val content = toolWindow!!.contentManager.getContent(0)
+        val infracostWindow = content!!.component as InfracostWindow
+        infracostWindow.clearModel()
+
+        infracostWindow.redraw()
     }
-    val toolWindow = ToolWindowManager.getInstance(project!!).getToolWindow(TOOL_WINDOW_ID)
-    val content = toolWindow!!.contentManager.getContent(0)
-    val infracostWindow = content!!.component as InfracostWindow
-    infracostWindow.clearModel()
-
-    infracostWindow.redraw()
-  }
 }

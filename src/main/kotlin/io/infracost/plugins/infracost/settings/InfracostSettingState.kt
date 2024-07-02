@@ -8,20 +8,21 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 
 @State(
     name = "io.infracost.plugins.infracost.settings.AppSettingsState",
-    storages = [Storage("infracost.xml")])
+    storages = [Storage("infracost.xml")]
+)
 class InfracostSettingState : PersistentStateComponent<InfracostSettingState?> {
-  var infracostPath: String = ""
+    var infracostPath: String = ""
 
-  override fun getState(): InfracostSettingState {
-    return this
-  }
+    override fun getState(): InfracostSettingState {
+        return this
+    }
 
-  override fun loadState(state: InfracostSettingState) {
-    XmlSerializerUtil.copyBean(state, this)
-  }
+    override fun loadState(state: InfracostSettingState) {
+        XmlSerializerUtil.copyBean(state, this)
+    }
 
-  companion object {
-    val instance: InfracostSettingState
-      get() = ApplicationManager.getApplication().getService(InfracostSettingState::class.java)
-  }
+    companion object {
+        val instance: InfracostSettingState
+            get() = ApplicationManager.getApplication().getService(InfracostSettingState::class.java)
+    }
 }
