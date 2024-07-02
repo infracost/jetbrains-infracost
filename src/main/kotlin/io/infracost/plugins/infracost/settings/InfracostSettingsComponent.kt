@@ -5,6 +5,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.FormBuilder
+import io.infracost.plugins.infracost.actions.tasks.InfracostTask
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -37,5 +38,6 @@ class InfracostSettingsComponent {
 
     fun setInfracostPath(newText: String) {
         infracostPath.text = newText
+        InfracostTask.resetBinaryFile()
     }
 }

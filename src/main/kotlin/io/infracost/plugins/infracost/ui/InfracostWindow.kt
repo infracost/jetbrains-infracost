@@ -74,11 +74,11 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
         actionGroup.add(
             actionManager.getAction("io.infracost.plugins.infracost.actions.ClearResultsAction")
         )
-//        actionGroup.add(
-//            actionManager.getAction(
-//                "io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction.kt"
-//            )
-//        )
+        actionGroup.add(
+            actionManager.getAction(
+                "io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction"
+            )
+        )
 
         val actionToolbar = actionManager.createActionToolbar("ACTION_TOOLBAR", actionGroup, true)
         actionToolbar.setOrientation(SwingConstants.VERTICAL)

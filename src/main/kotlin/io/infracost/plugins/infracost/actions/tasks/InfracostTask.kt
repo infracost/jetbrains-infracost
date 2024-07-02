@@ -13,6 +13,10 @@ abstract class InfracostTask(project: Project, taskTitle: String, cancellable: B
         @JvmStatic
         protected var binaryFile: String? = null
 
+        fun resetBinaryFile() {
+            binaryFile = null
+        }
+
         fun ensureBinaryAvailable(): Boolean {
             if (this.binaryFile != null) {
                 return true
@@ -20,6 +24,11 @@ abstract class InfracostTask(project: Project, taskTitle: String, cancellable: B
             if (InfracostSettingState.instance.infracostPath.isEmpty()) {
                 ensureBinaryFile()
                 return this.binaryFile != null
+            }
+
+            if (File(InfracostSettingState.instance.infracostPath).exists()) {
+                binaryFile = InfracostSettingState.instance.infracostPath
+                return true
             }
 
             return findFileInPath(InfracostSettingState.instance.infracostPath) != null
