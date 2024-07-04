@@ -34,7 +34,7 @@ object ResultProcessor {
             )
             return
         } finally {
-            resultFile?.deleteOnExit()
+            resultFile?.delete()
         }
 
         // redraw the explorer with the updated content

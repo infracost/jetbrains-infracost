@@ -10,6 +10,8 @@ import io.infracost.plugins.infracost.actions.tasks.InfracostBackgroundRunTask
 import io.infracost.plugins.infracost.ui.notify.InfracostNotificationGroup
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.SwingUtilities
 
 /** RunInfracostAction executes infracost then calls update results */
@@ -36,6 +38,8 @@ class RunInfracostAction : AnAction() {
     }
 
     companion object {
+        private val running = AtomicBoolean(false)
+        private val next = AtomicReference<InfracostBackgroundRunTask>()
 
         fun runInfracost(project: Project) {
             var resultFile: File? = null
@@ -45,11 +49,28 @@ class RunInfracostAction : AnAction() {
                 InfracostNotificationGroup.notifyError(project, ex.localizedMessage)
             }
 
+            // mark the file for deletion on exit
+            resultFile?.deleteOnExit()
+
             val runner =
                 InfracostBackgroundRunTask(project, resultFile!!) { proj: Project, f: File? ->
                     ResultProcessor.updateResults(proj, f)
+                    running.set(false)
+                    val queued = next.getAndSet(null)
+                    if (queued != null) {
+                        running.set(true)
+                        ProgressManager.getInstance().run(queued)
+                    }
                 }
+
+            if (running.get()) {
+                // If a run is already in progress, queue the next run
+                next.set(runner)
+                return
+            }
+
             if (SwingUtilities.isEventDispatchThread()) {
+                running.set(true)
                 ProgressManager.getInstance().run(runner)
             } else {
                 ApplicationManager.getApplication().invokeLater(runner)

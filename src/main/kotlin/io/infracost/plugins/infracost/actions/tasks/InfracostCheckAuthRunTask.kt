@@ -33,6 +33,7 @@ internal class InfracostCheckAuthRunTask(
             GeneralCommandLine(commandParams)
                 .withEnvironment(
                     mapOf(
+                        "INFRACOST_CLI_PLATFORM" to "jetbrains",
                         "INFRACOST_SKIP_UPDATE_CHECK" to "true",
                         "INFRACOST_GRAPH_EVALUATOR" to "true",
                         "INFRACOST_NO_COLOR" to "true"
