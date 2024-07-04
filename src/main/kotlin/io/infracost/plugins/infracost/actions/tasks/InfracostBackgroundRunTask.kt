@@ -56,6 +56,7 @@ internal class InfracostBackgroundRunTask(
             GeneralCommandLine(commandParts)
                 .withEnvironment(
                     mapOf(
+                        "INFRACOST_CLI_PLATFORM" to "jetbrains",
                         "INFRACOST_SKIP_UPDATE_CHECK" to "true",
                         "INFRACOST_GRAPH_EVALUATOR" to "true",
                         "INFRACOST_NO_COLOR" to "true"
@@ -75,9 +76,6 @@ internal class InfracostBackgroundRunTask(
         try {
             ScriptRunnerUtil.getProcessOutput(
                 handler, ScriptRunnerUtil.STDOUT_OR_STDERR_OUTPUT_KEY_FILTER, 100000000
-            )
-            InfracostNotificationGroup.notifyInformation(
-                project, "infracost run completed, updating results"
             )
             SwingUtilities.invokeLater { callback.accept(this.project, this.resultFile) }
         } catch (e: ExecutionException) {

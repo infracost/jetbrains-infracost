@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2024-07-04
+### Fixed
+- Limit subsequent runs to one queued run, this handles large scale saves and button mashing
+
+### Changed
+- Set the platform identifier to jetbrains
+
 ## [1.1.0] - 2024-07-02
 ### Added
 - Support for config files

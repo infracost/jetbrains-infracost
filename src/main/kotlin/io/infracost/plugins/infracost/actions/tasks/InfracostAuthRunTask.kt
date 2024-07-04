@@ -38,7 +38,7 @@ internal class InfracostAuthRunTask(
                         "INFRACOST_SKIP_UPDATE_CHECK" to "true",
                         "INFRACOST_GRAPH_EVALUATOR" to "true",
                         "INFRACOST_NO_COLOR" to "true",
-                        "INFRACOST_CLI_PLATFORM" to "vscode",
+                        "INFRACOST_CLI_PLATFORM" to "jetbrains",
                     )
                 )
         ApplicationManager.getApplication().executeOnPooledThread {
