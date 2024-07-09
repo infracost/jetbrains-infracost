@@ -64,8 +64,8 @@ class RunInfracostAction : AnAction() {
                 }
 
             if (running.get()) {
-                // If a run is already in progress, queue the next run
-                next.set(runner)
+                // If a run is already in progress, queue the next run if not already queued
+                next.compareAndSet(null, runner)
                 return
             }
 

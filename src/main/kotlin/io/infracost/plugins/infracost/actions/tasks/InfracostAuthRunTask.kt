@@ -1,11 +1,12 @@
 package io.infracost.plugins.infracost.actions.tasks
 
 import com.intellij.execution.ExecutionException
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import io.infracost.plugins.infracost.actions.CheckAuthAction
+import io.infracost.plugins.infracost.binary.InfracostBinary
 import io.infracost.plugins.infracost.ui.notify.InfracostNotificationGroup
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -15,36 +16,27 @@ import javax.swing.SwingUtilities
 internal class InfracostAuthRunTask(
     private val project: Project,
     private val callback: Consumer<Boolean>
-) : InfracostTask(project, "Authenticate Infracost", false), Runnable {
+) : Backgroundable(project, "Authenticate Infracost", false), Runnable {
     override fun run(indicator: ProgressIndicator) {
         this.run()
     }
 
     override fun run() {
-        if (!ensureBinaryAvailable()) {
-            InfracostNotificationGroup.notifyError(project, "Infracost binary not found")
-            return
-        }
+        val commandParts: MutableList<String?> = ArrayList()
+        commandParts.add(InfracostBinary.binaryFile)
+        commandParts.add("auth")
+        commandParts.add("login")
 
-        val commandParams: MutableList<String?> = ArrayList()
-        commandParams.add(binaryFile)
-        commandParams.add("auth")
-        commandParams.add("login")
+        val command = ProcessBuilder(commandParts)
+        command.environment().set("INFRACOST_CLI_PLATFORM", "jetbrains")
+        command.environment().set("INFRACOST_SKIP_UPDATE_CHECK", "true")
+        command.environment().set("INFRACOST_GRAPH_EVALUATOR", "true")
+        command.environment().set("INFRACOST_NO_COLOR", "true")
 
-        val commandLine =
-            GeneralCommandLine(commandParams)
-                .withEnvironment(
-                    mapOf(
-                        "INFRACOST_SKIP_UPDATE_CHECK" to "true",
-                        "INFRACOST_GRAPH_EVALUATOR" to "true",
-                        "INFRACOST_NO_COLOR" to "true",
-                        "INFRACOST_CLI_PLATFORM" to "jetbrains",
-                    )
-                )
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 try {
-                    val process = Runtime.getRuntime().exec(commandLine.commandLineString)
+                    val process = command.start()
                     val inputReader = BufferedReader(InputStreamReader(process.inputStream))
                     val inputThread = Thread {
                         try {
