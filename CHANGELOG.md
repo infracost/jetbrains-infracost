@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2024-07-10
+
+### Fixed
+
+- Check auth on download
+
+### Added
+
+- Skip scanning on file save as an option
+
 ## [1.2.0] - 2024-07-09
 
 ### Changed

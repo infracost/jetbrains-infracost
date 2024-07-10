@@ -28,17 +28,20 @@ class InfracostSettingsConfigurable : Configurable {
     override fun isModified(): Boolean {
         val settings = InfracostSettingState.instance
         val modified = infracostSettingsComponent!!.getInfracostPath() != settings.infracostPath
+                || infracostSettingsComponent!!.getExplicitInfracost() != settings.onlyExplicitRun
         return modified
     }
 
     override fun apply() {
         val settings = InfracostSettingState.instance
         settings.infracostPath = infracostSettingsComponent!!.getInfracostPath()
+        settings.onlyExplicitRun = infracostSettingsComponent!!.getExplicitInfracost()
     }
 
     override fun reset() {
         val settings = InfracostSettingState.instance
         infracostSettingsComponent!!.setInfracostPath(settings.infracostPath)
+        infracostSettingsComponent!!.setExplicitInfracost(settings.onlyExplicitRun)
     }
 
     override fun disposeUIResources() {
