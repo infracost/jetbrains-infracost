@@ -43,5 +43,9 @@ v1.0 - Initial release<br />
         <action id="io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction" icon="AllIcons.General.Settings"
                 class="io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction" text="Show Settings"
                 description="Show Settings dialog"/>
+        <action id="io.infracost.plugins.infracost.actions.DownloadInfracostAction"
+                icon="AllIcons.Actions.Download"
+                class="io.infracost.plugins.infracost.actions.DownloadInfracostAction" text="Download Infracost"
+                description="Download Infracost"/>
     </actions>
 </idea-plugin>

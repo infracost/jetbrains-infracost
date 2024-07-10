@@ -11,7 +11,7 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.treeStructure.Tree
-import io.infracost.plugins.infracost.actions.CheckAuthAction
+import io.infracost.plugins.infracost.actions.DownloadInfracostAction
 import io.infracost.plugins.infracost.actions.ResultProcessor
 import io.infracost.plugins.infracost.actions.RunAuthAction
 import io.infracost.plugins.infracost.model.Resource
@@ -30,8 +30,9 @@ class InfracostWindow(private val project: Project) : SimpleToolWindowPanel(fals
     private var authenticated: Boolean = false
 
     init {
+        DownloadInfracostAction.runDownload(project)
         configureToolbar()
-        CheckAuthAction.checkAuth(project)
+
     }
 
     fun updatePanel(isAuthenticated: Boolean) {

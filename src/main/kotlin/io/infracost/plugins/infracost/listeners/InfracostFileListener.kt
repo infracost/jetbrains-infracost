@@ -17,7 +17,8 @@ class InfracostFileListener : BulkFileListener {
         for (event in events) {
             if (event.isFromSave) {
                 if (event.file?.extension?.lowercase() in INFRACOST_FILE_EXTENSIONS ||
-                        INFRACOST_FILES.contains(event.file?.name?.lowercase())){
+                    INFRACOST_FILES.contains(event.file?.name?.lowercase())
+                ) {
                     val project = ProjectLocator.getInstance().guessProjectForFile(event.file!!) ?: return
                     RunInfracostAction.runInfracost(project)
                 }

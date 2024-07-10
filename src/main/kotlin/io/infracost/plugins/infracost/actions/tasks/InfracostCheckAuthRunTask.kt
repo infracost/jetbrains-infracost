@@ -1,52 +1,56 @@
 package io.infracost.plugins.infracost.actions.tasks
 
 import com.intellij.execution.ExecutionException
-import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.process.ScriptRunnerUtil
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
+import io.infracost.plugins.infracost.binary.InfracostBinary
 import io.infracost.plugins.infracost.ui.notify.InfracostNotificationGroup
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.util.function.Consumer
 import javax.swing.SwingUtilities
 
 internal class InfracostCheckAuthRunTask(
     private val project: Project,
     private val callback: Consumer<String>
-) : InfracostTask(project, "Checking Infracost Auth Status", false), Runnable {
+) : Backgroundable(project, "Checking Infracost Auth Status", false), Runnable {
     override fun run(indicator: ProgressIndicator) {
         this.run()
     }
 
     override fun run() {
-        if (!ensureBinaryAvailable()) {
-            InfracostNotificationGroup.notifyError(project, "Infracost binary not found")
-            return
-        }
-
-        val commandParams: MutableList<String?> = ArrayList()
-        commandParams.add(binaryFile)
-        commandParams.add("configure")
-        commandParams.add("get")
-        commandParams.add("api_key")
-
-        val commandLine =
-            GeneralCommandLine(commandParams)
-                .withEnvironment(
-                    mapOf(
-                        "INFRACOST_CLI_PLATFORM" to "jetbrains",
-                        "INFRACOST_SKIP_UPDATE_CHECK" to "true",
-                        "INFRACOST_GRAPH_EVALUATOR" to "true",
-                        "INFRACOST_NO_COLOR" to "true"
-                    )
-                )
+        val commandParts: MutableList<String?> = ArrayList()
+        commandParts.add(InfracostBinary.binaryFile)
+        commandParts.add("configure")
+        commandParts.add("get")
+        commandParts.add("api_key")
 
         try {
-            Runtime.getRuntime().exec(commandLine.commandLineString)
-            val result =
-                ScriptRunnerUtil.getProcessOutput(
-                    commandLine, ScriptRunnerUtil.STDOUT_OR_STDERR_OUTPUT_KEY_FILTER, 100000000
-                )
-            SwingUtilities.invokeLater { callback.accept(result) }
+            val command = ProcessBuilder(commandParts)
+            command.environment().set("INFRACOST_CLI_PLATFORM", "jetbrains")
+            command.environment().set("INFRACOST_SKIP_UPDATE_CHECK", "true")
+            command.environment().set("INFRACOST_GRAPH_EVALUATOR", "true")
+            command.environment().set("INFRACOST_NO_COLOR", "true")
+
+            val process = command.start()
+
+            val inputReader = BufferedReader(InputStreamReader(process.inputStream))
+            val inputThread = Thread {
+                try {
+                    inputReader.forEachLine { line ->
+                        SwingUtilities.invokeLater { callback.accept(line) }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    inputReader.close()
+                }
+            }
+            inputThread.start()
+
+            // Wait for the process to complete
+            process.waitFor()
         } catch (e: ExecutionException) {
             InfracostNotificationGroup.notifyError(project, e.localizedMessage)
         }

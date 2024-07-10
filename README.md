@@ -9,9 +9,11 @@
 ## Description
 
 <!-- Plugin description -->
-Infracost is a JetBrains IDE plugin that allows you to shift left on your Cloud costs by providing cost estimates for your Terraform code.
+Infracost is a JetBrains IDE plugin that allows you to shift left on your Cloud costs by providing cost estimates for
+your Terraform code.
 
-Infracost is a companion to the [Infracost CLI](https://www.infracost.io/docs/integrations/ci-cd) and provides a way to view cost estimates directly in your IDE.
+Infracost is a companion to the [Infracost CLI](https://www.infracost.io/docs/integrations/ci-cd) and provides a way to
+view cost estimates directly in your IDE.
 <!-- Plugin description end -->
 
 ## Features
@@ -30,4 +32,6 @@ You can install the plugin from the JetBrains Plugin Repository.
 4. Restart the IDE
 5. Open a Terraform file and click on the `Infracost` tab at the bottom of the IDE
 6. Click on `Refresh` to get the cost estimate
-7. Use our ![CI/CD integrations](https://www.infracost.io/docs/integrations/cicd/) to add cost estimates to pull requests. This provides your team with a safety net as people can understand cloud costs upfront, and discuss them as part of your workflow.
+7. Use our ![CI/CD integrations](https://www.infracost.io/docs/integrations/cicd/) to add cost estimates to pull
+   requests. This provides your team with a safety net as people can understand cloud costs upfront, and discuss them as
+   part of your workflow.
