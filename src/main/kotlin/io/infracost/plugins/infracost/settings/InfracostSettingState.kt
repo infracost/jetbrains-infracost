@@ -12,6 +12,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 )
 class InfracostSettingState : PersistentStateComponent<InfracostSettingState?> {
     var infracostPath: String = ""
+    var onlyExplicitRun: Boolean = false
 
     override fun getState(): InfracostSettingState {
         return this

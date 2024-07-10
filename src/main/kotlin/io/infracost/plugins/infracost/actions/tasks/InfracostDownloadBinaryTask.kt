@@ -92,11 +92,11 @@ internal class InfracostDownloadBinaryTask(private val project: Project, val ini
             if (downloadBinary(project, binaryRelease, targetFile, initial)) {
                 InfracostSettingState.instance.infracostPath = targetFile.absolutePath
                 InfracostBinary.binaryFile = targetFile.absolutePath
-                if (initial) {
-                    SwingUtilities.invokeLater {
-                        CheckAuthAction.checkAuth(project)
-                    }
+
+                SwingUtilities.invokeLater {
+                    CheckAuthAction.checkAuth(project)
                 }
+                
             }
         }
     }
