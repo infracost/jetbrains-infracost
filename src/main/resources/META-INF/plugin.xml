@@ -2,7 +2,7 @@
 <idea-plugin>
     <id>io.infracost.plugins.jetbrains-infracost</id>
     <name>Infracost</name>
-    <vendor email="owen@infracost.io" url="https://infracost.io">Infracost</vendor>
+    <vendor email="support@infracost.io" url="https://infracost.io">Infracost</vendor>
     <description><![CDATA[infracost integration for Jetbrains tools. <br/>
 
 Scan your Terraform infrastructure as code files with Infracost and then navigate with the handy Findings Explorer.<br/>
