@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.2] - 2024-08-08
+
+### Changed
+
+- Update the support email address
+
 ## [1.2.1] - 2024-07-10
 
 ### Fixed

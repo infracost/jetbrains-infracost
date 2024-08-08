@@ -8,16 +8,14 @@
 Scan your Terraform infrastructure as code files with Infracost and then navigate with the handy Findings Explorer.<br/>
 
 Additional help and context is provided in the Findings help pane for each issue identified.
-]]></description>
-    <change-notes><![CDATA[v1.1.0 - Fix rendering of help menu and links<br />
-v1.0 - Initial release<br />
-]]></change-notes>
+]]>    </description>
+    <change-notes><![CDATA[v1.2.2 - Update support email address<br />
+]]>    </change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="Infracost: Projects Overview" secondary="true"
-                    anchor="left" icon="/icons/infracost.svg"
+        <toolWindow id="Infracost: Projects Overview" secondary="true" anchor="left" icon="/icons/infracost.svg"
                     factoryClass="io.infracost.plugins.infracost.ui.InfracostWindowFactory"/>
         <notificationGroup id="Infracost Notifications" displayType="BALLOON"/>
         <applicationConfigurable parentId="tools"
@@ -43,8 +41,7 @@ v1.0 - Initial release<br />
         <action id="io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction" icon="AllIcons.General.Settings"
                 class="io.infracost.plugins.infracost.actions.ShowInfracostSettingsAction" text="Show Settings"
                 description="Show Settings dialog"/>
-        <action id="io.infracost.plugins.infracost.actions.DownloadInfracostAction"
-                icon="AllIcons.Actions.Download"
+        <action id="io.infracost.plugins.infracost.actions.DownloadInfracostAction" icon="AllIcons.Actions.Download"
                 class="io.infracost.plugins.infracost.actions.DownloadInfracostAction" text="Download Infracost"
                 description="Download Infracost"/>
     </actions>
