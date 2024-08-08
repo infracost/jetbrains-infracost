@@ -9,7 +9,7 @@
 ## Description
 
 <!-- Plugin description -->
-Infracost is a JetBrains IDE plugin that allows you to shift left on your Cloud costs by providing cost estimates for
+Infracost is an IntelliJ-based plugin that allows you to shift left on your Cloud costs by providing cost estimates for
 your Terraform code.
 
 Infracost is a companion to the [Infracost CLI](https://www.infracost.io/docs/integrations/ci-cd) and provides a way to
