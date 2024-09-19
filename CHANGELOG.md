@@ -6,7 +6,7 @@
 
 ## [1.2.3] - 2024-09-19
 
-- Update the support versions to include the latest 2024.3 versions
+- Update the supported versions to include the latest 2024.3 versions
 
 ## [1.2.2] - 2024-08-08
 
