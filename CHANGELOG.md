@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+## [1.2.4] - 2025-01-16
+
+- Update the supported versions to include the latest 2024.3 versions
+
 ## [1.2.3] - 2024-09-19
 
 - Update the supported versions to include the latest 2024.3 versions

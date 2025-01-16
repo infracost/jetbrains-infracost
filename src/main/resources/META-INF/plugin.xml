@@ -9,7 +9,7 @@ Scan your Terraform infrastructure as code files with Infracost and then navigat
 
 Additional help and context is provided in the Findings help pane for each issue identified.
 ]]>    </description>
-    <change-notes><![CDATA[v1.2.3 - Ensure compatibility with newer IDE versions<br />
+    <change-notes><![CDATA[v1.2.4 - Ensure compatibility with newer IDE versions<br />
 ]]>    </change-notes>
 
     <depends>com.intellij.modules.platform</depends>
