@@ -13,10 +13,15 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.ultimate</depends>
 
+    <applicationListeners>
+        <listener class="com.infracost.intellij.InfracostSaveListener"
+                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>
+    </applicationListeners>
+
     <extensions defaultExtensionNs="com.intellij">
         <platform.lsp.serverSupportProvider
                 implementation="com.infracost.intellij.InfracostLspServerSupportProvider"/>
-        <codeInsight.daemonBoundCodeVisionProvider
+        <codeInsight.codeVisionProvider
                 implementation="com.infracost.intellij.InfracostCodeVisionProvider"/>
         <applicationConfigurable parentId="tools"
                                  instance="com.infracost.intellij.InfracostSettingsConfigurable"
@@ -25,5 +30,7 @@
         <applicationService serviceImplementation="com.infracost.intellij.InfracostSettingsState"/>
         <toolWindow id="Infracost" secondary="true" anchor="right" icon="/icons/toolWindow.svg"
                     factoryClass="com.infracost.intellij.InfracostToolWindowFactory"/>
+        <statusBarWidgetFactory implementation="com.infracost.intellij.InfracostStatusBarWidgetFactory"
+                                id="InfracostStatusBar"/>
     </extensions>
 </idea-plugin>

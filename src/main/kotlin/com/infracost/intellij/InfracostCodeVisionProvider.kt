@@ -2,67 +2,82 @@ package com.infracost.intellij
 
 import com.google.gson.Gson
 import com.intellij.codeInsight.codeVision.CodeVisionAnchorKind
-import com.intellij.codeInsight.codeVision.CodeVisionEntry
+import com.intellij.codeInsight.codeVision.CodeVisionProvider
 import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
+import com.intellij.codeInsight.codeVision.CodeVisionState
+import com.intellij.codeInsight.codeVision.CodeVisionState.Companion.READY_EMPTY
 import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
-import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.platform.lsp.api.LspServerManager
-import com.intellij.psi.PsiFile
 import org.eclipse.lsp4j.CodeLensParams
 import org.eclipse.lsp4j.TextDocumentIdentifier
-import java.util.concurrent.TimeUnit
 
 @Suppress("UnstableApiUsage")
-class InfracostCodeVisionProvider : DaemonBoundCodeVisionProvider {
+class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
 
     override val id: String = ID
     override val name: String = "Infracost"
     override val defaultAnchor: CodeVisionAnchorKind = CodeVisionAnchorKind.Top
     override val relativeOrderings: List<CodeVisionRelativeOrdering> = emptyList()
 
-    // computeForEditor is called off-EDT by the DaemonBoundCodeVisionProvider contract
-    override fun computeForEditor(
-        editor: Editor,
-        file: PsiFile,
-    ): List<Pair<TextRange, CodeVisionEntry>> {
-        val vf = file.virtualFile ?: return emptyList()
-        if (!InfracostLspServerDescriptor.isSupportedFile(vf)) return emptyList()
+    override fun precomputeOnUiThread(editor: Editor) {}
 
-        val project = editor.project ?: return emptyList()
+    override fun computeCodeVision(editor: Editor, uiData: Unit): CodeVisionState {
+        val project = editor.project ?: return READY_EMPTY
+        val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return READY_EMPTY
+        if (!InfracostLspServerDescriptor.isSupportedFile(file)) return READY_EMPTY
+
         val servers = LspServerManager.getInstance(project)
             .getServersForProvider(InfracostLspServerSupportProvider::class.java)
-        val server = servers.firstOrNull() ?: return emptyList()
+        val server = servers.firstOrNull() ?: return CodeVisionState.NotReady
 
-        val uri = vf.url
+        val uri = try {
+            file.toNioPath().toUri().toString()
+        } catch (_: UnsupportedOperationException) {
+            return READY_EMPTY
+        }
         val params = CodeLensParams(TextDocumentIdentifier(uri))
 
         val lenses = try {
-            server.lsp4jServer.textDocumentService.codeLens(params).get(5, TimeUnit.SECONDS)
-        } catch (_: Exception) {
-            return emptyList()
-        } ?: return emptyList()
+            server.sendRequestSync { it.textDocumentService.codeLens(params) }
+        } catch (e: Exception) {
+            LOG.warn("codeLens request failed", e)
+            return CodeVisionState.NotReady
+        } ?: return CodeVisionState.NotReady
 
-        val document = editor.document
+        LOG.debug("codeLens returned ${lenses.size} lenses for $uri")
 
-        val byLine = mutableMapOf<Int, MutableList<String>>()
-        for (lens in lenses) {
-            val line = lens.range.start.line
-            val title = lens.command?.title ?: continue
-            if (line < 0 || line >= document.lineCount) continue
-            byLine.getOrPut(line) { mutableListOf() }.add(title)
-        }
+        // Document access needs a read action
+        return ReadAction.compute<CodeVisionState, RuntimeException> {
+            val document = editor.document
+            val byLine = mutableMapOf<Int, MutableList<String>>()
+            for (lens in lenses) {
+                val line = lens.range.start.line
+                val title = lens.command?.title ?: continue
+                if (line < 0 || line >= document.lineCount) continue
+                byLine.getOrPut(line) { mutableListOf() }.add(title)
+            }
 
-        return byLine.map { (line, titles) ->
-            val offset = document.getLineStartOffset(line)
-            val entry = ClickableTextCodeVisionEntry(
-                titles.joinToString(" | "),
-                id,
-                { _, e -> handleClick(e, uri, line) },
-            )
-            TextRange(offset, offset) to entry
+            val entries = byLine.map { (line, titles) ->
+                val offset = document.getLineStartOffset(line)
+                val text = titles.joinToString(" | ")
+                val entry = ClickableTextCodeVisionEntry(
+                    text,
+                    id,
+                    { _, e -> handleClick(e, uri, line) },
+                )
+                TextRange(offset, offset) to entry
+            }
+
+            CodeVisionState.Ready(entries)
         }
     }
 
@@ -72,21 +87,36 @@ class InfracostCodeVisionProvider : DaemonBoundCodeVisionProvider {
             val servers = LspServerManager.getInstance(project)
                 .getServersForProvider(InfracostLspServerSupportProvider::class.java)
             val server = servers.firstOrNull() ?: return@executeOnPooledThread
-            val lsp = server.lsp4jServer as? InfracostLanguageServer ?: return@executeOnPooledThread
-
             try {
-                val response = lsp.resourceDetails(ResourceDetailsParams(uri, line))
-                    .get(5, TimeUnit.SECONDS)
+                val response = server.sendRequestSync {
+                    (it as InfracostLanguageServer).resourceDetails(ResourceDetailsParams(uri, line))
+                }
                 val gson = Gson()
                 val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
-                InfracostToolWindowFactory.show(project, result)
-            } catch (_: Exception) {
-                // Ignore errors
+                InfracostToolWindowFactory.show(project, ResourceDetailsParams(uri, line), result)
+            } catch (e: Exception) {
+                LOG.warn("resourceDetails request failed", e)
             }
         }
     }
 
     companion object {
         const val ID = "infracost.codelens"
+        private val LOG = Logger.getInstance(InfracostCodeVisionProvider::class.java)
+
+        fun forceRefresh(project: Project) {
+            ApplicationManager.getApplication().invokeLater {
+                if (project.isDisposed) return@invokeLater
+                val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return@invokeLater
+                val document = editor.document
+                ApplicationManager.getApplication().runWriteAction {
+                    CommandProcessor.getInstance().runUndoTransparentAction {
+                        val len = document.textLength
+                        document.insertString(len, " ")
+                        document.deleteString(len, len + 1)
+                    }
+                }
+            }
+        }
     }
 }

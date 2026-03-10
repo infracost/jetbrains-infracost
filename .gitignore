@@ -14,3 +14,6 @@ bin
 
 hs_err_pid*
 replay_pid*
+.claude/settings.json
+.claude/settings.local.json
+./bin
