@@ -6,24 +6,26 @@ on:
       - '\d+\.\d+\.\d+'
 
 jobs:
-  build-gradle-project:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-        with:
-          build-scan-publish: true
-          build-scan-terms-of-use-url: "https://gradle.com/terms-of-service"
-          build-scan-terms-of-use-agree: "yes"
 
-      - name: Run build plugin
+      - name: Build plugin
         run: ./gradlew buildPlugin
 
-      - name: Publish plugin
-        run: ./gradlew publishPlugin
+      - name: Sign and publish plugin
+        run: ./gradlew signPlugin publishPlugin
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
