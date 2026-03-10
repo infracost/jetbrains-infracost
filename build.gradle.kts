@@ -33,6 +33,14 @@ tasks.withType<JavaCompile> {
     targetCompatibility = "17"
 }
 
+tasks {
+    prepareSandbox {
+        from("bin") {
+            into("${intellijPlatform.projectName.get()}/bin")
+        }
+    }
+}
+
 intellijPlatform {
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")

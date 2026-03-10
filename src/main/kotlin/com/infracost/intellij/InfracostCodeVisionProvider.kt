@@ -1,10 +1,12 @@
 package com.infracost.intellij
 
+import com.google.gson.Gson
 import com.intellij.codeInsight.codeVision.CodeVisionAnchorKind
 import com.intellij.codeInsight.codeVision.CodeVisionEntry
 import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
-import com.intellij.codeInsight.codeVision.ui.model.TextCodeVisionEntry
+import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
 import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.platform.lsp.api.LspServerManager
@@ -21,18 +23,20 @@ class InfracostCodeVisionProvider : DaemonBoundCodeVisionProvider {
     override val defaultAnchor: CodeVisionAnchorKind = CodeVisionAnchorKind.Top
     override val relativeOrderings: List<CodeVisionRelativeOrdering> = emptyList()
 
+    // computeForEditor is called off-EDT by the DaemonBoundCodeVisionProvider contract
     override fun computeForEditor(
         editor: Editor,
         file: PsiFile,
     ): List<Pair<TextRange, CodeVisionEntry>> {
-        if (file.virtualFile?.extension != "tf") return emptyList()
+        val vf = file.virtualFile ?: return emptyList()
+        if (!InfracostLspServerDescriptor.isSupportedFile(vf)) return emptyList()
 
         val project = editor.project ?: return emptyList()
         val servers = LspServerManager.getInstance(project)
             .getServersForProvider(InfracostLspServerSupportProvider::class.java)
         val server = servers.firstOrNull() ?: return emptyList()
 
-        val uri = file.virtualFile.url
+        val uri = vf.url
         val params = CodeLensParams(TextDocumentIdentifier(uri))
 
         val lenses = try {
@@ -43,8 +47,6 @@ class InfracostCodeVisionProvider : DaemonBoundCodeVisionProvider {
 
         val document = editor.document
 
-        // Group lenses by line and combine into a single entry per line,
-        // since CodeVision shows one entry per TextRange per provider.
         val byLine = mutableMapOf<Int, MutableList<String>>()
         for (lens in lenses) {
             val line = lens.range.start.line
@@ -55,7 +57,32 @@ class InfracostCodeVisionProvider : DaemonBoundCodeVisionProvider {
 
         return byLine.map { (line, titles) ->
             val offset = document.getLineStartOffset(line)
-            TextRange(offset, offset) to TextCodeVisionEntry(titles.joinToString(" | "), id)
+            val entry = ClickableTextCodeVisionEntry(
+                titles.joinToString(" | "),
+                id,
+                { _, e -> handleClick(e, uri, line) },
+            )
+            TextRange(offset, offset) to entry
+        }
+    }
+
+    private fun handleClick(editor: Editor, uri: String, line: Int) {
+        val project = editor.project ?: return
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val servers = LspServerManager.getInstance(project)
+                .getServersForProvider(InfracostLspServerSupportProvider::class.java)
+            val server = servers.firstOrNull() ?: return@executeOnPooledThread
+            val lsp = server.lsp4jServer as? InfracostLanguageServer ?: return@executeOnPooledThread
+
+            try {
+                val response = lsp.resourceDetails(ResourceDetailsParams(uri, line))
+                    .get(5, TimeUnit.SECONDS)
+                val gson = Gson()
+                val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
+                InfracostToolWindowFactory.show(project, result)
+            } catch (_: Exception) {
+                // Ignore errors
+            }
         }
     }
 

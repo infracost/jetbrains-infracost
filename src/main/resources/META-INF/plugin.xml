@@ -7,7 +7,7 @@
     Cloud cost estimates for Terraform right in your editor.
     Powered by <a href="https://www.infracost.io">Infracost</a>.
     <br/><br/>
-    Requires <code>infracost-ls</code> on your PATH.
+    Bundles <code>infracost-ls</code>. You can also override the binary path in Settings.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -18,5 +18,12 @@
                 implementation="com.infracost.intellij.InfracostLspServerSupportProvider"/>
         <codeInsight.daemonBoundCodeVisionProvider
                 implementation="com.infracost.intellij.InfracostCodeVisionProvider"/>
+        <applicationConfigurable parentId="tools"
+                                 instance="com.infracost.intellij.InfracostSettingsConfigurable"
+                                 id="com.infracost.intellij.InfracostSettingsConfigurable"
+                                 displayName="Infracost"/>
+        <applicationService serviceImplementation="com.infracost.intellij.InfracostSettingsState"/>
+        <toolWindow id="Infracost" secondary="true" anchor="right" icon="/icons/toolWindow.svg"
+                    factoryClass="com.infracost.intellij.InfracostToolWindowFactory"/>
     </extensions>
 </idea-plugin>
