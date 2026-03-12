@@ -9,11 +9,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefJSQuery
 import java.awt.BorderLayout
-import java.util.concurrent.TimeUnit
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.SwingConstants
@@ -39,6 +39,17 @@ class InfracostToolWindowFactory : ToolWindowFactory, DumbAware {
 
         project.putUserData(PANEL_KEY, panel)
 
+        project.messageBus.connect().subscribe(
+            ToolWindowManagerListener.TOPIC,
+            object : ToolWindowManagerListener {
+                override fun toolWindowShown(tw: ToolWindow) {
+                    if (tw.id == ID) {
+                        panel.checkAuthStatus()
+                    }
+                }
+            }
+        )
+
         panel.checkAuthStatus()
     }
 
@@ -46,12 +57,12 @@ class InfracostToolWindowFactory : ToolWindowFactory, DumbAware {
         const val ID = "Infracost"
         val PANEL_KEY = com.intellij.openapi.util.Key.create<InfracostToolWindowPanel>("infracost.panel")
 
-        fun show(project: Project, data: ResourceDetailsResult) {
+        fun show(project: Project, params: ResourceDetailsParams, data: ResourceDetailsResult) {
             ApplicationManager.getApplication().invokeLater {
                 val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(ID) ?: return@invokeLater
                 toolWindow.show()
                 val panel = project.getUserData(PANEL_KEY) ?: return@invokeLater
-                panel.update(data)
+                panel.update(params, data)
             }
         }
     }
@@ -84,17 +95,48 @@ class InfracostToolWindowPanel(
         }
     }
 
-    fun update(data: ResourceDetailsResult) {
+    @Volatile
+    private var lastParams: ResourceDetailsParams? = null
+
+    @Volatile
+    private var lastHtml: String? = null
+
+    fun update(params: ResourceDetailsParams, data: ResourceDetailsResult) {
+        lastParams = params
         if (data.needsLogin == true) {
             showLogin()
             return
         }
 
         val html = InfracostResourceHtml.renderResult(data)
+        if (html == lastHtml) return
+        lastHtml = html
+
         if (browser != null) {
             browser.loadHTML(html)
         } else {
             fallbackLabel?.text = data.resource?.name ?: "No resource selected"
+        }
+    }
+
+    fun refreshCurrentResource() {
+        val params = lastParams ?: return
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                val servers = LspServerManager.getInstance(project)
+                    .getServersForProvider(InfracostLspServerSupportProvider::class.java)
+                val server = servers.firstOrNull() ?: return@executeOnPooledThread
+                val response = server.sendRequestSync {
+                    (it as InfracostLanguageServer).resourceDetails(params)
+                }
+                val gson = Gson()
+                val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
+                ApplicationManager.getApplication().invokeLater {
+                    if (!project.isDisposed) update(params, result)
+                }
+            } catch (_: Exception) {
+                // Ignore — sidebar stays showing last known data
+            }
         }
     }
 
@@ -105,31 +147,40 @@ class InfracostToolWindowPanel(
         browser.loadHTML(html)
     }
 
+    @Volatile
+    private var checkingAuth = false
+
     fun checkAuthStatus() {
+        if (checkingAuth) return
+        checkingAuth = true
+
         ApplicationManager.getApplication().executeOnPooledThread {
-            for (attempt in 1..10) {
-                Thread.sleep(1000)
+            try {
+                for (attempt in 1..10) {
+                    Thread.sleep(1000)
 
-                try {
-                    val servers = LspServerManager.getInstance(project)
-                        .getServersForProvider(InfracostLspServerSupportProvider::class.java)
-                    val server = servers.firstOrNull() ?: continue
-                    val lsp = server.lsp4jServer as? InfracostLanguageServer ?: continue
-
-                    val response = lsp.resourceDetails(ResourceDetailsParams("", 0))
-                        .get(5, TimeUnit.SECONDS)
-                    val gson = Gson()
-                    val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
-
-                    if (result.needsLogin == true) {
-                        ApplicationManager.getApplication().invokeLater {
-                            showLogin()
+                    try {
+                        val servers = LspServerManager.getInstance(project)
+                            .getServersForProvider(InfracostLspServerSupportProvider::class.java)
+                        val server = servers.firstOrNull() ?: continue
+                        val response = server.sendRequestSync {
+                            (it as InfracostLanguageServer).resourceDetails(ResourceDetailsParams("", 0))
                         }
+                        val gson = Gson()
+                        val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
+
+                        if (result.needsLogin == true) {
+                            ApplicationManager.getApplication().invokeLater {
+                                showLogin()
+                            }
+                        }
+                        return@executeOnPooledThread
+                    } catch (_: Exception) {
+                        // LSP not ready yet — retry
                     }
-                    return@executeOnPooledThread
-                } catch (_: Exception) {
-                    // LSP not ready yet — retry
                 }
+            } finally {
+                checkingAuth = false
             }
         }
     }
@@ -140,9 +191,9 @@ class InfracostToolWindowPanel(
                 val servers = LspServerManager.getInstance(project)
                     .getServersForProvider(InfracostLspServerSupportProvider::class.java)
                 val server = servers.firstOrNull() ?: return@executeOnPooledThread
-                val lsp = server.lsp4jServer as? InfracostLanguageServer ?: return@executeOnPooledThread
-
-                val response = lsp.login().get(10, TimeUnit.SECONDS)
+                val response = server.sendRequestSync {
+                    (it as InfracostLanguageServer).login()
+                }
                 val gson = Gson()
                 val result = gson.fromJson(gson.toJson(response), LoginResult::class.java)
 

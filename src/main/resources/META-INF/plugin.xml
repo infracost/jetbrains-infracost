@@ -13,10 +13,15 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.ultimate</depends>
 
+    <applicationListeners>
+        <listener class="com.infracost.intellij.InfracostSaveListener"
+                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>
+    </applicationListeners>
+
     <extensions defaultExtensionNs="com.intellij">
         <platform.lsp.serverSupportProvider
                 implementation="com.infracost.intellij.InfracostLspServerSupportProvider"/>
-        <codeInsight.daemonBoundCodeVisionProvider
+        <codeInsight.codeVisionProvider
                 implementation="com.infracost.intellij.InfracostCodeVisionProvider"/>
         <applicationConfigurable parentId="tools"
                                  instance="com.infracost.intellij.InfracostSettingsConfigurable"

@@ -89,7 +89,7 @@ data class ThemeColors(
             val bg = ui("Panel.background") ?: JBColor.PanelBackground
             val fg = ui("Panel.foreground") ?: JBColor.foreground()
             val border = ui("Component.borderColor") ?: ui("Separator.separatorColor") ?: JBColor.border()
-            val link = ui("Link.activeForeground") ?: ui("link.foreground") ?: JBColor.link()
+            val link = ui("Link.activeForeground") ?: ui("link.foreground") ?: JBColor.BLUE
             val btnBg = ui("Button.default.startBackground") ?: ui("Button.startBackground") ?: link
             val btnHover = ui("Button.default.focusedBorderColor") ?: btnBg.darker()
 

@@ -7,6 +7,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
+import com.intellij.platform.lsp.api.Lsp4jClient
+import com.intellij.platform.lsp.api.LspServerNotificationsHandler
 import org.eclipse.lsp4j.services.LanguageServer
 import java.nio.file.Path
 
@@ -35,6 +37,10 @@ class InfracostLspServerDescriptor(project: Project) :
             project.basePath?.let { withWorkDirectory(it) }
             withEnvironment("INFRACOST_RUN_PARAMS_CACHE_TTL_SECONDS", settings.runParamsCacheTTLSeconds.toString())
 
+            if (settings.debugUIAddress.isNotBlank()) {
+                withEnvironment("INFRACOST_DEBUG_UI", settings.debugUIAddress)
+            }
+
             for (name in PLUGIN_BINARIES) {
                 val path = bundledBinary(name)
                 if (path != null) {
@@ -46,6 +52,10 @@ class InfracostLspServerDescriptor(project: Project) :
 
     override val lsp4jServerClass: Class<out LanguageServer>
         get() = InfracostLanguageServer::class.java
+
+    override fun createLsp4jClient(handler: LspServerNotificationsHandler): Lsp4jClient {
+        return InfracostLanguageClientImpl(project, handler)
+    }
 
     companion object {
         private const val PLUGIN_ID = "io.infracost.plugins.jetbrains-infracost"
@@ -63,8 +73,12 @@ class InfracostLspServerDescriptor(project: Project) :
             return plugin.pluginPath.resolve("bin")
         }
 
+        private val IS_WINDOWS = System.getProperty("os.name").lowercase().contains("win")
+
         private fun bundledBinary(name: String): String? {
-            val bin = pluginBinDir()?.resolve(name) ?: return null
+            val dir = pluginBinDir() ?: return null
+            val exeName = if (IS_WINDOWS) "$name.exe" else name
+            val bin = dir.resolve(exeName)
             return if (bin.toFile().isFile) bin.toString() else null
         }
 
