@@ -38,6 +38,8 @@ class InfracostToolWindowFactory : ToolWindowFactory, DumbAware {
         toolWindow.contentManager.addContent(content)
 
         project.putUserData(PANEL_KEY, panel)
+
+        panel.checkAuthStatus()
     }
 
     companion object {
@@ -101,6 +103,35 @@ class InfracostToolWindowPanel(
 
         val html = InfracostResourceHtml.renderLogin(loginQuery.inject("''"))
         browser.loadHTML(html)
+    }
+
+    fun checkAuthStatus() {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            for (attempt in 1..10) {
+                Thread.sleep(1000)
+
+                try {
+                    val servers = LspServerManager.getInstance(project)
+                        .getServersForProvider(InfracostLspServerSupportProvider::class.java)
+                    val server = servers.firstOrNull() ?: continue
+                    val lsp = server.lsp4jServer as? InfracostLanguageServer ?: continue
+
+                    val response = lsp.resourceDetails(ResourceDetailsParams("", 0))
+                        .get(5, TimeUnit.SECONDS)
+                    val gson = Gson()
+                    val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
+
+                    if (result.needsLogin == true) {
+                        ApplicationManager.getApplication().invokeLater {
+                            showLogin()
+                        }
+                    }
+                    return@executeOnPooledThread
+                } catch (_: Exception) {
+                    // LSP not ready yet — retry
+                }
+            }
+        }
     }
 
     private fun performLogin() {
