@@ -73,7 +73,7 @@ class InfracostLspServerDescriptor(project: Project) :
             return plugin.pluginPath.resolve("bin")
         }
 
-        private val IS_WINDOWS = System.getProperty("os.name").lowercase().contains("win")
+        private val IS_WINDOWS = System.getProperty("os.name")?.lowercase()?.contains("win") == true
 
         private fun bundledBinary(name: String): String? {
             val dir = pluginBinDir() ?: return null

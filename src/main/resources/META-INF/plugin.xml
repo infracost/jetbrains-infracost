@@ -30,5 +30,7 @@
         <applicationService serviceImplementation="com.infracost.intellij.InfracostSettingsState"/>
         <toolWindow id="Infracost" secondary="true" anchor="right" icon="/icons/toolWindow.svg"
                     factoryClass="com.infracost.intellij.InfracostToolWindowFactory"/>
+        <statusBarWidgetFactory implementation="com.infracost.intellij.InfracostStatusBarWidgetFactory"
+                                id="InfracostStatusBar"/>
     </extensions>
 </idea-plugin>

@@ -95,13 +95,12 @@ class InfracostToolWindowPanel(
         }
     }
 
-    @Volatile
     private var lastParams: ResourceDetailsParams? = null
-
-    @Volatile
     private var lastHtml: String? = null
 
+    /** Must be called on the EDT. */
     fun update(params: ResourceDetailsParams, data: ResourceDetailsResult) {
+        ApplicationManager.getApplication().assertIsDispatchThread()
         lastParams = params
         if (data.needsLogin == true) {
             showLogin()
@@ -134,8 +133,8 @@ class InfracostToolWindowPanel(
                 ApplicationManager.getApplication().invokeLater {
                     if (!project.isDisposed) update(params, result)
                 }
-            } catch (_: Exception) {
-                // Ignore — sidebar stays showing last known data
+            } catch (e: Exception) {
+                LOG.debug("Failed to refresh current resource", e)
             }
         }
     }
@@ -147,42 +146,37 @@ class InfracostToolWindowPanel(
         browser.loadHTML(html)
     }
 
-    @Volatile
-    private var checkingAuth = false
-
-    fun checkAuthStatus() {
-        if (checkingAuth) return
-        checkingAuth = true
-
+    fun checkAuthStatus(retriesLeft: Int = 3) {
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
-                for (attempt in 1..10) {
-                    Thread.sleep(1000)
+                val servers = LspServerManager.getInstance(project)
+                    .getServersForProvider(InfracostLspServerSupportProvider::class.java)
+                val server = servers.firstOrNull()
+                if (server == null) {
+                    retryCheckAuthStatus(retriesLeft)
+                    return@executeOnPooledThread
+                }
+                val response = server.sendRequestSync {
+                    (it as InfracostLanguageServer).resourceDetails(ResourceDetailsParams("", 0))
+                }
+                val gson = Gson()
+                val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
 
-                    try {
-                        val servers = LspServerManager.getInstance(project)
-                            .getServersForProvider(InfracostLspServerSupportProvider::class.java)
-                        val server = servers.firstOrNull() ?: continue
-                        val response = server.sendRequestSync {
-                            (it as InfracostLanguageServer).resourceDetails(ResourceDetailsParams("", 0))
-                        }
-                        val gson = Gson()
-                        val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
-
-                        if (result.needsLogin == true) {
-                            ApplicationManager.getApplication().invokeLater {
-                                showLogin()
-                            }
-                        }
-                        return@executeOnPooledThread
-                    } catch (_: Exception) {
-                        // LSP not ready yet — retry
+                if (result.needsLogin == true) {
+                    ApplicationManager.getApplication().invokeLater {
+                        if (!project.isDisposed) showLogin()
                     }
                 }
-            } finally {
-                checkingAuth = false
+            } catch (_: Exception) {
+                retryCheckAuthStatus(retriesLeft)
             }
         }
+    }
+
+    private fun retryCheckAuthStatus(retriesLeft: Int) {
+        if (retriesLeft <= 0 || project.isDisposed) return
+        Thread.sleep(5000)
+        checkAuthStatus(retriesLeft - 1)
     }
 
     private fun performLogin() {

@@ -2,7 +2,6 @@ package com.infracost.intellij
 
 import com.google.gson.Gson
 import com.intellij.codeInsight.codeVision.CodeVisionAnchorKind
-import com.intellij.codeInsight.codeVision.CodeVisionEntry
 import com.intellij.codeInsight.codeVision.CodeVisionProvider
 import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
 import com.intellij.codeInsight.codeVision.CodeVisionState
@@ -10,19 +9,16 @@ import com.intellij.codeInsight.codeVision.CodeVisionState.Companion.READY_EMPTY
 import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerManager
-import com.intellij.util.FileContentUtil
 import org.eclipse.lsp4j.CodeLensParams
 import org.eclipse.lsp4j.TextDocumentIdentifier
-import java.util.concurrent.TimeUnit
 
 @Suppress("UnstableApiUsage")
 class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
@@ -43,7 +39,11 @@ class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
             .getServersForProvider(InfracostLspServerSupportProvider::class.java)
         val server = servers.firstOrNull() ?: return CodeVisionState.NotReady
 
-        val uri = file.toNioPath().toUri().toString()
+        val uri = try {
+            file.toNioPath().toUri().toString()
+        } catch (_: UnsupportedOperationException) {
+            return READY_EMPTY
+        }
         val params = CodeLensParams(TextDocumentIdentifier(uri))
 
         val lenses = try {
@@ -53,10 +53,7 @@ class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
             return CodeVisionState.NotReady
         } ?: return CodeVisionState.NotReady
 
-        LOG.info("codeLens returned ${lenses.size} lenses for $uri")
-        for ((i, lens) in lenses.withIndex()) {
-            LOG.info("  lens[$i] line=${lens.range.start.line} hasCommand=${lens.command != null} title=${lens.command?.title} data=${lens.data}")
-        }
+        LOG.debug("codeLens returned ${lenses.size} lenses for $uri")
 
         // Document access needs a read action
         return ReadAction.compute<CodeVisionState, RuntimeException> {
@@ -97,8 +94,8 @@ class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
                 val gson = Gson()
                 val result = gson.fromJson(gson.toJson(response), ResourceDetailsResult::class.java)
                 InfracostToolWindowFactory.show(project, ResourceDetailsParams(uri, line), result)
-            } catch (_: Exception) {
-                // Ignore errors
+            } catch (e: Exception) {
+                LOG.warn("resourceDetails request failed", e)
             }
         }
     }
@@ -107,22 +104,17 @@ class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
         const val ID = "infracost.codelens"
         private val LOG = Logger.getInstance(InfracostCodeVisionProvider::class.java)
 
-        fun refresh(project: Project, file: VirtualFile) {
-            ApplicationManager.getApplication().invokeLater {
-                if (project.isDisposed) return@invokeLater
-                FileContentUtil.reparseFiles(project, listOf(file), true)
-            }
-        }
-
         fun forceRefresh(project: Project) {
             ApplicationManager.getApplication().invokeLater {
                 if (project.isDisposed) return@invokeLater
                 val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return@invokeLater
                 val document = editor.document
-                val len = document.textLength
-                WriteCommandAction.runWriteCommandAction(project) {
-                    document.insertString(len, " ")
-                    document.deleteString(len, len + 1)
+                ApplicationManager.getApplication().runWriteAction {
+                    CommandProcessor.getInstance().runUndoTransparentAction {
+                        val len = document.textLength
+                        document.insertString(len, " ")
+                        document.deleteString(len, len + 1)
+                    }
                 }
             }
         }

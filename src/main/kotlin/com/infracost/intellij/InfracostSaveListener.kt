@@ -4,7 +4,6 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileDocumentManagerListener
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.wm.WindowManager
 import com.intellij.platform.lsp.api.LspServerManager
 import org.eclipse.lsp4j.DidSaveTextDocumentParams
 import org.eclipse.lsp4j.TextDocumentIdentifier
@@ -19,15 +18,13 @@ class InfracostSaveListener : FileDocumentManagerListener {
 
         for (project in ProjectManager.getInstance().openProjects) {
             if (project.isDisposed) continue
+            @Suppress("UnstableApiUsage")
             val servers = LspServerManager.getInstance(project)
                 .getServersForProvider(InfracostLspServerSupportProvider::class.java)
             val server = servers.firstOrNull() ?: continue
             server.sendNotification { it.textDocumentService.didSave(saveParams) }
 
-            // Show scanning indicator. Cleared by InfracostLanguageClientImpl when
-            // the server sends infracost/scanComplete.
-            val statusBar = WindowManager.getInstance().getStatusBar(project)
-            statusBar?.info = "Infracost: Scanning..."
+            InfracostStatusBarWidget.getInstance(project)?.show("Infracost: Scanning...")
             break
         }
     }

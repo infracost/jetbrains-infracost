@@ -455,16 +455,38 @@ object InfracostResourceHtml {
     private fun sentenceCase(s: String): String =
         s.first().uppercase() + s.drop(1).lowercase()
 
-    private fun linkify(s: String): String =
-        esc(s)
+    private fun escAttr(s: String): String =
+        s.replace("&", "&amp;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#x27;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+
+    private fun linkify(s: String): String {
+        // First, convert backticks to placeholders before escaping so they don't
+        // interfere with the link regex output.
+        val escaped = esc(s)
+
+        // Restore <a> tags from the escaped string, with proper attribute escaping
+        val withLinks = escaped
             .replace(Regex("""&lt;a href=&quot;(.*?)&quot;(.*?)&gt;(.*?)&lt;/a&gt;""")) { m ->
-                val url = m.groupValues[1].replace("&amp;", "&")
-                val text = m.groupValues[3]
-                if (url.startsWith("https://") || url.startsWith("http://")) {
-                    """<a href="$url">$text</a>"""
+                val rawUrl = m.groupValues[1].replace("&amp;", "&")
+                val text = m.groupValues[3] // already HTML-escaped by esc()
+                if (rawUrl.startsWith("https://") || rawUrl.startsWith("http://")) {
+                    """<a href="${escAttr(rawUrl)}">$text</a>"""
                 } else {
                     text
                 }
             }
-            .replace(Regex("""`([^`]+)`"""), """<code>$1</code>""")
+
+        // Convert backtick-wrapped text to <code> tags, but only outside existing HTML tags
+        return withLinks.replace(Regex("""`([^`]+)`""")) { m ->
+            val content = m.groupValues[1]
+            if (content.contains("<a ") || content.contains("</a>")) {
+                m.value // leave it alone if it wraps a link
+            } else {
+                "<code>$content</code>"
+            }
+        }
+    }
 }
