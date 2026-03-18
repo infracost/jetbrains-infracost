@@ -1,118 +1,158 @@
-import org.jetbrains.changelog.Changelog
-import org.jetbrains.changelog.markdownToHTML
-
-fun properties(key: String) = providers.gradleProperty(key)
-fun environment(key: String) = providers.environmentVariable(key)
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import java.net.URI
 
 plugins {
-    id("java") // Java support
-    alias(libs.plugins.kotlin) // Kotlin support
-    alias(libs.plugins.gradleIntelliJPlugin) // Gradle IntelliJ Plugin
-    alias(libs.plugins.changelog) // Gradle Changelog Plugin
-    alias(libs.plugins.qodana) // Gradle Qodana Plugin
-    alias(libs.plugins.kover) // Gradle Kover Plugin
+    id("org.jetbrains.kotlin.jvm") version "2.1.0"
+    id("org.jetbrains.intellij.platform") version "2.2.1"
 }
 
+group = providers.gradleProperty("pluginGroup").get()
+version = providers.gradleProperty("pluginVersion").get()
 
-
-group = properties("pluginGroup").get()
-version = properties("pluginVersion").get()
-
-// Configure project's dependencies
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 dependencies {
-    implementation("org.apache.commons:commons-compress:1.21")
+    intellijPlatform {
+        intellijIdeaUltimate(providers.gradleProperty("platformVersion").get())
+        instrumentationTools()
+        pluginVerifier()
+    }
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
 }
 
-intellij {
-    pluginName = properties("pluginName")
-    version = properties("platformVersion")
-    type = properties("platformType")
-
-    plugins = properties("platformPlugins").map { it.split(',').map(String::trim).filter(String::isNotEmpty) }
-
+tasks.withType<JavaCompile> {
+    sourceCompatibility = "21"
+    targetCompatibility = "21"
 }
 
-changelog {
-    groups.empty()
-    repositoryUrl = properties("pluginRepositoryUrl")
-}
+val lspVersion: String? = providers.gradleProperty("lspVersion").orNull
+    ?: providers.environmentVariable("LSP_VERSION").orNull
 
-kover {
-    reports {
-        total {
-            xml {
-                onCheck = true
+val downloadLsp by tasks.registering {
+    description = "Downloads infracost-ls binaries into bin/"
+    val binDir = project.layout.projectDirectory.dir("bin")
+
+    outputs.dir(binDir)
+    onlyIf {
+        val files = binDir.asFile.listFiles() ?: emptyArray()
+        files.none { it.name.startsWith("infracost-ls-") }
+    }
+
+    doLast {
+        val platforms = listOf("linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64", "windows-amd64", "windows-arm64")
+
+        val version = lspVersion ?: run {
+            logger.lifecycle("No lspVersion set, fetching latest from GitHub...")
+            val url = URI("https://api.github.com/repos/infracost/lsp/releases/latest").toURL()
+            val json = url.readText()
+            val match = Regex("\"tag_name\"\\s*:\\s*\"v?([^\"]+)\"").find(json)
+                ?: error("Could not determine latest LSP version")
+            match.groupValues[1]
+        }
+        logger.lifecycle("Downloading infracost-ls v$version for all platforms")
+
+        val binDirFile = binDir.asFile
+        binDirFile.mkdirs()
+
+        val pluginBinaries = listOf(
+            "infracost-parser-plugin",
+            "infracost-provider-plugin-aws",
+            "infracost-provider-plugin-azurerm",
+            "infracost-provider-plugin-google",
+        )
+
+        for (platform in platforms) {
+            val os = platform.substringBefore("-")
+            val arch = platform.substringAfter("-")
+
+            val isWindows = os == "windows"
+            val ext = if (isWindows) "zip" else "tar.gz"
+            val archive = file("${project.layout.buildDirectory.get()}/tmp/lsp_${os}_${arch}.$ext")
+            archive.parentFile.mkdirs()
+
+            val downloadUrl = "https://github.com/infracost/lsp/releases/download/v$version/lsp_${os}_${arch}.$ext"
+            logger.lifecycle("  Downloading $platform...")
+            URI(downloadUrl).toURL().openStream().use { input ->
+                archive.outputStream().use { output -> input.copyTo(output) }
             }
+
+            val extractDir = file("${project.layout.buildDirectory.get()}/tmp/lsp-extract-$platform")
+            extractDir.deleteRecursively()
+            extractDir.mkdirs()
+
+            if (isWindows) {
+                exec {
+                    commandLine("unzip", "-o", archive.absolutePath, "-d", extractDir.absolutePath)
+                }
+            } else {
+                exec {
+                    commandLine("tar", "xzf", archive.absolutePath, "-C", extractDir.absolutePath)
+                }
+            }
+
+            val suffix = if (isWindows) ".exe" else ""
+            extractDir.walk().filter { it.name == "infracost-ls$suffix" && it.isFile }.forEach { binary ->
+                val target = file("${binDirFile.absolutePath}/infracost-ls-$platform$suffix")
+                binary.copyTo(target, overwrite = true)
+                target.setExecutable(true)
+            }
+
+            for (name in pluginBinaries) {
+                extractDir.walk().filter { it.name == "$name$suffix" && it.isFile }.forEach { binary ->
+                    val target = file("${binDirFile.absolutePath}/$name-$platform$suffix")
+                    binary.copyTo(target, overwrite = true)
+                    target.setExecutable(true)
+                }
+            }
+
+            extractDir.deleteRecursively()
+            archive.delete()
         }
     }
 }
 
 tasks {
-    wrapper {
-        gradleVersion = properties("gradleVersion").get()
-    }
-
-    patchPluginXml {
-        version = properties("pluginVersion")
-        sinceBuild = properties("pluginSinceBuild")
-        untilBuild = properties("pluginUntilBuild")
-
-        // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
-        pluginDescription = providers.fileContents(layout.projectDirectory.file("README.md")).asText.map {
-            val start = "<!-- Plugin description -->"
-            val end = "<!-- Plugin description end -->"
-
-            with(it.lines()) {
-                if (!containsAll(listOf(start, end))) {
-                    throw GradleException("Plugin description section not found in README.md:\n$start ... $end")
-                }
-                subList(indexOf(start) + 1, indexOf(end)).joinToString("\n").let(::markdownToHTML)
-            }
+    prepareSandbox {
+        dependsOn(downloadLsp)
+        from("bin") {
+            into("${intellijPlatform.projectName.get()}/bin")
         }
+    }
+}
 
-        val changelog = project.changelog // local variable for configuration cache compatibility
-        // Get the latest available change notes from the changelog file
-        changeNotes = properties("pluginVersion").map { pluginVersion ->
-            with(changelog) {
-                renderItem(
-                    (getOrNull(pluginVersion) ?: getUnreleased())
-                        .withHeader(false)
-                        .withEmptySections(false),
-                    Changelog.OutputType.HTML,
-                )
-            }
+intellijPlatform {
+    pluginConfiguration {
+        name = providers.gradleProperty("pluginName")
+        ideaVersion {
+            sinceBuild = providers.gradleProperty("pluginSinceBuild")
+            untilBuild = providers.gradleProperty("pluginUntilBuild")
         }
     }
 
-    // Configure UI tests plugin
-    // Read more: https://github.com/JetBrains/intellij-ui-test-robot
-    runIdeForUiTests {
-        systemProperty("robot-server.port", "8082")
-        systemProperty("ide.mac.message.dialogs.as.sheets", "false")
-        systemProperty("jb.privacy.policy.text", "<!--999.999-->")
-        systemProperty("jb.consents.confirmation.enabled", "false")
-    }
-
-    signPlugin {
-        certificateChain = environment("CERTIFICATE_CHAIN")
-        privateKey = environment("PRIVATE_KEY")
-        password = environment("PRIVATE_KEY_PASSWORD")
-    }
-
-    publishPlugin {
-        dependsOn("patchChangelog", "signPlugin")
-        token = environment("PUBLISH_TOKEN")
-        channels = properties("pluginVersion").map {
-            listOf(
-                it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" })
+    pluginVerification {
+        ides {
+            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2025.1")
         }
+    }
+
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
     }
 }

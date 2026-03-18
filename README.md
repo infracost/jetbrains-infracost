@@ -2,92 +2,66 @@
 
 [![JetBrains IntelliJ plugins](https://img.shields.io/jetbrains/plugin/v/24761-infracost.svg)](https://plugins.jetbrains.com/plugin/24761-infracost)
 [![JetBrains IntelliJ plugins](https://img.shields.io/jetbrains/plugin/d/24761-infracost.svg)](https://plugins.jetbrains.com/plugin/24761-infracost)
-[![JetBrains IntelliJ plugins](https://img.shields.io/jetbrains/plugin/r/rating/24761-infracost.svg)](https://plugins.jetbrains.com/plugin/24761-infracost)
 
-
-![Infracost JetBrains Plugin](.github/images/infracost.png)
-
-## Demo Video
-
-[![https://img.youtube.com/vi/kgfkdmUNzEo/0.jpg](https://img.youtube.com/vi/kgfkdmUNzEo/0.jpg)](https://www.youtube.com/watch?v=kgfkdmUNzEo)
-
-## Description
-
-<!-- Plugin description -->
-Infracost is an IntelliJ-based plugin that allows you to shift left on your Cloud costs by providing cost estimates for
-your Terraform code.
-
-Infracost is a companion to the [Infracost CLI](https://www.infracost.io/docs/integrations/cicd) and provides a way to
-view cost estimates directly in your IDE.
-<!-- Plugin description end -->
+Infracost's JetBrains plugin shows you cost estimates for Terraform right in your editor! It also surfaces FinOps policies and tagging issues so you can catch problems before they reach production.
 
 ## Features
 
-- View cost estimates for your Terraform code directly in your IDE
-- Supports all JetBrains IDEs
-- Supports all Terraform providers
+### Inline cost estimates
 
-## Installation
+See cost estimates as code vision hints directly above Terraform resource definitions. Costs update as you edit.
 
-You can install the plugin from the JetBrains Plugin Repository.
+![Inline cost estimates](.github/assets/code-vision.png)
 
-1. Open the IDE and go to `Settings` -> `Plugins` -> `Marketplace`
-2. Search for `Infracost`
-3. Click `Install`
-4. Restart the IDE
-5. Open a Terraform file and click on the `Infracost` tab at the bottom of the IDE
-6. Click on `Refresh` to get the cost estimate
-7. Use our [CI/CD integrations](https://www.infracost.io/docs/integrations/cicd/) to add cost estimates to pull
-   requests. This provides your team with a safety net as people can understand cloud costs upfront, and discuss them as
-   part of your workflow.
-   ![CI/CD](.github/images/cicd-integration.png)
+### Resource details sidebar
 
+Click a code vision hint to open the resource details panel, showing a full cost component breakdown, FinOps policy violations, and tagging issues.
 
-## FAQs
+![Resource details sidebar](.github/assets/sidebar.png)
 
-### How can I supply input variables to Infracost Intellij extension?
+### FinOps policies and tag issues
 
-To supply input variables for your Terraform projects, we recommend you add a [config file](https://www.infracost.io/docs/features/config_file/). Config files allow you to add any number of variable files for defined projects. Infracost also auto-detects any var files called `terraform.tfvars`, or `*.auto.tfvars` at the root level of your Terraform projects. e.g:
+The plugin highlights FinOps policy violations (with risk, effort, and potential savings) and tag policy issues directly in the sidebar. Blocking violations are clearly marked.
 
-```yaml
-version: 0.1
-projects:
-  - path: dev
-    name: development
-    usage_file: dev/infracost-usage.yml
-    terraform_var_files:
-      - dev.tfvars
-      - global.tfvars
-```
+![FinOps policies](.github/assets/finops.png)
 
-Both HCL and JSON var files are supported, JSON var files must include a `.json` suffix.
+### CloudFormation support
 
-### How do I supply a usage file to the Infracost Intellij extension?
+In addition to Terraform (`.tf`) files, the plugin supports CloudFormation templates in YAML and JSON.
 
-To supply input variables for your Terraform projects, we recommend you add a [config file](https://www.infracost.io/docs/features/config_file/). Config files allow you to define a usage file for each project you specify, e.g:
+## Get started
 
-```yaml
-version: 0.1
-projects:
-  - path: dev
-    usage_file: dev/infracost-usage.yml
-  - path: prod
-    usage_file: prod/infracost-usage.yml
-```
+### 1. Install the plugin
 
-### I see a lot of resources showing $0.00 costs, why is this?
+Open the IDE and go to `Settings` -> `Plugins` -> `Marketplace`, search for `Infracost`, and click `Install`. Restart the IDE.
 
-These resources are likely usage-based resources. For example, AWS Lambda is billed per request, so unless you specify the number of requests that the function receives. You're likely to see a message similar to the following: " Cost depends on usage: $0.20 per 1M requests" in the resource breakdown.
+### 2. Login to Infracost
 
-To specify usage for resources, add a [usage file](https://www.infracost.io/docs/features/usage_based_resources/#specify-usage-manually) and reference it in a [config file](https://www.infracost.io/docs/features/config_file/) you add at the root of your workspace.
+Open the Infracost tool window and click **Login to Infracost**. This will open a browser window to authenticate your editor with your Infracost account.
 
-### How can I configure the currency Infracost uses?
+![Login](.github/assets/login.png)
 
-If you have the `infracost` CLI installed, you can set the currency by running `infracost configure set currency EUR` (check `infracost configure --help` for other configuration options). Otherwise, update the global infracost configuration file (found at `~/.config/infracost/configuration.yml`) with the following:
+### 3. Open a Terraform project
 
-```yaml
-version: "0.1"
-currency: EUR
-```
+Open a project containing Terraform files. The plugin will start the language server and begin scanning your project. Cost estimates will appear as code vision hints above resource blocks.
 
-Infracost supports all ISO 4217 currency codes. [This FAQ](https://www.infracost.io/docs/faq/#can-i-show-costs-in-a-different-currency) has more details.
+### 4. Cost estimates in pull requests
+
+[Use our CI/CD integrations](https://www.infracost.io/docs/integrations/cicd/) to add cost estimates to pull requests, giving your team visibility into cloud costs as part of your workflow.
+
+## Requirements
+
+* A JetBrains IDE (IntelliJ IDEA, GoLand, PyCharm, WebStorm, etc.)
+* An [Infracost](https://www.infracost.io) account
+
+## Settings
+
+Go to `Settings` -> `Tools` -> `Infracost` to configure:
+
+- **Server path** — path to the `infracost-ls` binary. Leave empty to use the bundled binary or find it on your PATH.
+- **Cache TTL** — how long (in seconds) to cache run parameters between API calls. Defaults to 300.
+
+## How it works
+
+This plugin is a lightweight LSP client that connects to the `infracost-ls` language server. The server handles all Terraform/CloudFormation parsing, cost estimation, and caching. The plugin surfaces cost data via JetBrains Code Vision and a detail panel in the tool window.
+
