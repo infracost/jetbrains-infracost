@@ -19,6 +19,7 @@
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="Infracost" displayType="BALLOON"/>
         <platform.lsp.serverSupportProvider
                 implementation="com.infracost.intellij.InfracostLspServerSupportProvider"/>
         <codeInsight.codeVisionProvider

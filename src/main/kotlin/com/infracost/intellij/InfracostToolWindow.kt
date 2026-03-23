@@ -2,6 +2,9 @@ package com.infracost.intellij
 
 import com.google.gson.Gson
 import com.intellij.ide.BrowserUtil
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAware
@@ -209,10 +212,17 @@ class InfracostToolWindowPanel(
                 val gson = Gson()
                 val result = gson.fromJson(gson.toJson(response), LoginResult::class.java)
 
-                BrowserUtil.browse(result.verificationUriComplete)
-
                 ApplicationManager.getApplication().invokeLater {
-                    browser?.loadHTML(InfracostResourceHtml.renderEmpty())
+                    if (project.isDisposed) return@invokeLater
+
+                    notifyInfo(project, "Verify the code in your browser matches: ${result.userCode}")
+                        .addAction(object : NotificationAction("Open Browser") {
+                            override fun actionPerformed(e: AnActionEvent, n: Notification) {
+                                BrowserUtil.browse(result.verificationUriComplete)
+                                n.expire()
+                                browser?.loadHTML(InfracostResourceHtml.renderEmpty())
+                            }
+                        })
                 }
             } catch (e: Exception) {
                 LOG.warn("Infracost login failed", e)

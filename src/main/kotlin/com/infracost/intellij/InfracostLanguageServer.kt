@@ -15,4 +15,7 @@ interface InfracostLanguageServer : LanguageServer {
 
     @JsonRequest("infracost/login")
     fun login(): CompletableFuture<Any>
+
+    @JsonRequest("infracost/update")
+    fun update(): CompletableFuture<Any>
 }
