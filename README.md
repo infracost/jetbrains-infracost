@@ -35,6 +35,8 @@ In addition to Terraform (`.tf`) files, the plugin supports CloudFormation templ
 
 Open the IDE and go to `Settings` -> `Plugins` -> `Marketplace`, search for `Infracost`, and click `Install`. Restart the IDE.
 
+Using a different IDE? See the [official installation docs](https://www.infracost.io/docs/ai_editor_plugins/ide_extensions/) for instructions on other supported editors.
+
 ### 2. Login to Infracost
 
 Open the Infracost tool window and click **Login to Infracost**. This will open a browser window to authenticate your editor with your Infracost account.
