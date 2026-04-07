@@ -35,6 +35,8 @@ In addition to Terraform (`.tf`) files, the plugin supports CloudFormation templ
 
 Open the IDE and go to `Settings` -> `Plugins` -> `Marketplace`, search for `Infracost`, and click `Install`. Restart the IDE.
 
+Using a different IDE? See the [official installation docs](https://www.infracost.io/docs/ai_editor_plugins/ide_extensions/) for instructions on other supported editors.
+
 ### 2. Login to Infracost
 
 Open the Infracost tool window and click **Login to Infracost**. This will open a browser window to authenticate your editor with your Infracost account.
@@ -51,8 +53,8 @@ Open a project containing Terraform files. The plugin will start the language se
 
 ## Requirements
 
-* A JetBrains IDE (IntelliJ IDEA, GoLand, PyCharm, WebStorm, etc.)
-* An [Infracost](https://www.infracost.io) account
+- A JetBrains IDE (IntelliJ IDEA, GoLand, PyCharm, WebStorm, etc.)
+- An [Infracost](https://www.infracost.io) account
 
 ## Settings
 
@@ -65,3 +67,10 @@ Go to `Settings` -> `Tools` -> `Infracost` to configure:
 
 This plugin is a lightweight LSP client that connects to the `infracost-ls` language server. The server handles all Terraform/CloudFormation parsing, cost estimation, and caching. The plugin surfaces cost data via JetBrains Code Vision and a detail panel in the tool window.
 
+## Contributing
+
+We welcome contributions! Please start by opening a thread in [GitHub Discussions](https://github.com/infracost/infracost/discussions) to discuss your idea before submitting a PR.
+
+## Bugs and feedback
+
+If you run into any issues or have feedback, please open a thread in [GitHub Discussions](https://github.com/infracost/infracost/discussions). We'd love to hear from you!
