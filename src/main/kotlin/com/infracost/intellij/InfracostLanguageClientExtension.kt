@@ -17,27 +17,30 @@ class InfracostLanguageClientImpl(
     serverNotificationsHandler: LspServerNotificationsHandler,
 ) : Lsp4jClient(serverNotificationsHandler) {
 
-    @JsonNotification("infracost/scanComplete")
-    fun scanComplete() {
-        InfracostCodeVisionProvider.forceRefresh(project)
-        project.getUserData(InfracostToolWindowFactory.PANEL_KEY)?.refreshCurrentResource()
-        ApplicationManager.getApplication().invokeLater {
-            if (!project.isDisposed) {
-                InfracostStatusBarWidget.getInstance(project)?.clear()
-            }
-        }
+  @JsonNotification("infracost/scanComplete")
+  fun scanComplete() {
+    InfracostCodeVisionProvider.forceRefresh(project)
+    ApplicationManager.getApplication().invokeLater {
+      if (project.isDisposed) return@invokeLater
+      val panel = project.getUserData(InfracostToolWindowFactory.PANEL_KEY)
+      panel?.refreshCurrentResource()
+      panel?.refreshEmpty()
+      InfracostStatusBarWidget.getInstance(project)?.clear()
     }
+  }
 
-    @JsonNotification("infracost/updateAvailable")
-    fun updateAvailable(params: UpdateAvailableParams) {
-        if (!params.updateAvailable) return
+  @JsonNotification("infracost/updateAvailable")
+  fun updateAvailable(params: UpdateAvailableParams) {
+    if (!params.updateAvailable) return
 
-        ApplicationManager.getApplication().invokeLater {
-            if (project.isDisposed) return@invokeLater
+    ApplicationManager.getApplication().invokeLater {
+      if (project.isDisposed) return@invokeLater
 
-            createInfoNotification("Infracost Language Server update available: <nobr>v${params.currentVersion}</nobr> → <nobr>v${params.latestVersion}</nobr>")
-                .apply { addAction(UpdateAction(project, params.latestVersion)) }
-                .notify(project)
-        }
+      createInfoNotification(
+              "Infracost Language Server update available: <nobr>v${params.currentVersion}</nobr> → <nobr>v${params.latestVersion}</nobr>"
+          )
+          .apply { addAction(UpdateAction(project, params.latestVersion)) }
+          .notify(project)
     }
+  }
 }
