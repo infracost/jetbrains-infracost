@@ -16,39 +16,44 @@ class UpdateAction(
     private val latestVersion: String,
 ) : NotificationAction("Update") {
 
-    override fun actionPerformed(e: AnActionEvent, notification: Notification) {
-        notification.expire()
+  override fun actionPerformed(e: AnActionEvent, notification: Notification) {
+    notification.expire()
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Updating Infracost Language Server...", true) {
-            override fun run(indicator: ProgressIndicator) {
+    ProgressManager.getInstance()
+        .run(
+            object : Task.Backgroundable(project, "Updating Infracost Language Server...", true) {
+              override fun run(indicator: ProgressIndicator) {
                 try {
-                    val servers = LspServerManager.getInstance(project)
-                        .getServersForProvider(InfracostLspServerSupportProvider::class.java)
-                    val server = servers.firstOrNull()
-                        ?: throw IllegalStateException("Infracost LSP server not running")
+                  val servers =
+                      LspServerManager.getInstance(project)
+                          .getServersForProvider(InfracostLspServerSupportProvider::class.java)
+                  val server =
+                      servers.firstOrNull()
+                          ?: throw IllegalStateException("Infracost LSP server not running")
 
-                    server.sendRequestSync { (it as InfracostLanguageServer).update() }
+                  server.sendRequestSync { (it as InfracostLanguageServer).update() }
 
-                    ApplicationManager.getApplication().invokeLater {
-                        if (project.isDisposed) return@invokeLater
+                  ApplicationManager.getApplication().invokeLater {
+                    if (project.isDisposed) return@invokeLater
 
-                        LspServerManager.getInstance(project)
-                            .stopAndRestartIfNeeded(InfracostLspServerSupportProvider::class.java)
+                    LspServerManager.getInstance(project)
+                        .stopAndRestartIfNeeded(InfracostLspServerSupportProvider::class.java)
 
-                        notifyInfo(project, "Infracost Language Server updated to v$latestVersion.")
-                    }
+                    notifyInfo(project, "Infracost Language Server updated to v$latestVersion.")
+                  }
                 } catch (ex: Exception) {
-                    LOG.warn("Infracost update failed", ex)
-                    ApplicationManager.getApplication().invokeLater {
-                        if (project.isDisposed) return@invokeLater
-                        notifyError(project, "Infracost update failed: ${ex.message}")
-                    }
+                  LOG.warn("Infracost update failed", ex)
+                  ApplicationManager.getApplication().invokeLater {
+                    if (project.isDisposed) return@invokeLater
+                    notifyError(project, "Infracost update failed: ${ex.message}")
+                  }
                 }
+              }
             }
-        })
-    }
+        )
+  }
 
-    companion object {
-        private val LOG = Logger.getInstance(UpdateAction::class.java)
-    }
+  companion object {
+    private val LOG = Logger.getInstance(UpdateAction::class.java)
+  }
 }
