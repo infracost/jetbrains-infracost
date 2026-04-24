@@ -13,13 +13,16 @@ import java.nio.file.Path
 import org.eclipse.lsp4j.services.LanguageServer
 
 class InfracostLspServerSupportProvider : LspServerSupportProvider {
+  private val descriptors = java.util.concurrent.ConcurrentHashMap<Project, InfracostLspServerDescriptor>()
+
   override fun fileOpened(
       project: Project,
       file: VirtualFile,
       serverStarter: LspServerSupportProvider.LspServerStarter,
   ) {
     if (InfracostLspServerDescriptor.isSupportedFile(file)) {
-      serverStarter.ensureServerStarted(InfracostLspServerDescriptor(project))
+      val desc = descriptors.getOrPut(project) { InfracostLspServerDescriptor(project) }
+      serverStarter.ensureServerStarted(desc)
     }
   }
 }
@@ -48,6 +51,16 @@ class InfracostLspServerDescriptor(project: Project) :
           "INFRACOST_RUN_PARAMS_CACHE_TTL_SECONDS",
           settings.runParamsCacheTTLSeconds.toString(),
       )
+
+      withEnvironment("INFRACOST_ENABLE_DIAGNOSTICS", settings.enableDiagnostics.toString())
+
+      if (settings.debug) {
+        withEnvironment("INFRACOST_DEBUG", "true")
+      }
+
+      if (settings.traceLevel != "off") {
+        withEnvironment("INFRACOST_TRACE_LEVEL", settings.traceLevel)
+      }
 
       if (settings.debugUIAddress.isNotBlank()) {
         withEnvironment("INFRACOST_DEBUG_UI", settings.debugUIAddress)

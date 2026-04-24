@@ -17,12 +17,33 @@ class InfracostLanguageClientImpl(
     serverNotificationsHandler: LspServerNotificationsHandler,
 ) : Lsp4jClient(serverNotificationsHandler) {
 
+  @JsonNotification("infracost/loginComplete")
+  fun loginComplete() {
+    ApplicationManager.getApplication().invokeLater {
+      if (project.isDisposed) return@invokeLater
+      val panel = project.getUserData(InfracostToolWindowFactory.PANEL_KEY)
+      panel?.onLoginComplete()
+    }
+  }
+
+  @JsonNotification("infracost/logoutComplete")
+  fun logoutComplete() {
+    ApplicationManager.getApplication().invokeLater {
+      if (project.isDisposed) return@invokeLater
+      val panel = project.getUserData(InfracostToolWindowFactory.PANEL_KEY)
+      panel?.onLogoutComplete()
+    }
+  }
+
   @JsonNotification("infracost/scanComplete")
   fun scanComplete() {
     InfracostCodeVisionProvider.forceRefresh(project)
     ApplicationManager.getApplication().invokeLater {
       if (project.isDisposed) return@invokeLater
       val panel = project.getUserData(InfracostToolWindowFactory.PANEL_KEY)
+      panel?.fetchGuardrails()
+      panel?.fetchOrgs()
+      panel?.fetchWorkspaceSummary()
       panel?.refreshCurrentResource()
       panel?.refreshEmpty()
       InfracostStatusBarWidget.getInstance(project)?.clear()

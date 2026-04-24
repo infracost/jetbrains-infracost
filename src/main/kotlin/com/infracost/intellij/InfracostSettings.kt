@@ -11,6 +11,8 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.FormBuilder
 import com.intellij.util.xmlb.XmlSerializerUtil
+import javax.swing.JCheckBox
+import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JSpinner
@@ -25,6 +27,9 @@ class InfracostSettingsState : PersistentStateComponent<InfracostSettingsState?>
   var serverPath: String = ""
   var runParamsCacheTTLSeconds: Int = 300
   var debugUIAddress: String = ""
+  var enableDiagnostics: Boolean = true
+  var debug: Boolean = false
+  var traceLevel: String = "off"
 
   override fun getState(): InfracostSettingsState = this
 
@@ -43,6 +48,9 @@ class InfracostSettingsConfigurable : Configurable {
   private var serverPathField: TextFieldWithBrowseButton? = null
   private var cacheTTLSpinner: JSpinner? = null
   private var debugUIField: JTextField? = null
+  private var enableDiagnosticsCheckbox: JCheckBox? = null
+  private var debugCheckbox: JCheckBox? = null
+  private var traceLevelCombo: JComboBox<String>? = null
 
   override fun getDisplayName(): String = "Infracost"
 
@@ -61,10 +69,17 @@ class InfracostSettingsConfigurable : Configurable {
 
     debugUIField = JTextField()
 
+    enableDiagnosticsCheckbox = JCheckBox("Show inline diagnostics")
+    debugCheckbox = JCheckBox("Enable debug logging")
+    traceLevelCombo = JComboBox(arrayOf("off", "messages", "verbose"))
+
     panel =
         FormBuilder.createFormBuilder()
             .addLabeledComponent(JBLabel("Server path:"), serverPathField!!, 1, true)
             .addLabeledComponent(JBLabel("Cache TTL (seconds):"), cacheTTLSpinner!!, 1, false)
+            .addComponent(enableDiagnosticsCheckbox!!, 1)
+            .addComponent(debugCheckbox!!, 1)
+            .addLabeledComponent(JBLabel("Trace level:"), traceLevelCombo!!, 1, false)
             .addLabeledComponent(JBLabel("Debug UI address:"), debugUIField!!, 1, false)
             .addComponentFillVertically(JPanel(), 0)
             .panel
@@ -78,10 +93,13 @@ class InfracostSettingsConfigurable : Configurable {
     val settings = InfracostSettingsState.instance
     val path = serverPathField ?: return false
     val ttl = cacheTTLSpinner ?: return false
-    val debug = debugUIField ?: return false
+    val debugUI = debugUIField ?: return false
     return path.text != settings.serverPath ||
         (ttl.value as Int) != settings.runParamsCacheTTLSeconds ||
-        debug.text != settings.debugUIAddress
+        debugUI.text != settings.debugUIAddress ||
+        enableDiagnosticsCheckbox?.isSelected != settings.enableDiagnostics ||
+        debugCheckbox?.isSelected != settings.debug ||
+        (traceLevelCombo?.selectedItem as? String) != settings.traceLevel
   }
 
   override fun apply() {
@@ -89,6 +107,9 @@ class InfracostSettingsConfigurable : Configurable {
     settings.serverPath = serverPathField?.text ?: return
     settings.runParamsCacheTTLSeconds = (cacheTTLSpinner?.value as? Int) ?: return
     settings.debugUIAddress = debugUIField?.text ?: return
+    settings.enableDiagnostics = enableDiagnosticsCheckbox?.isSelected ?: true
+    settings.debug = debugCheckbox?.isSelected ?: false
+    settings.traceLevel = (traceLevelCombo?.selectedItem as? String) ?: "off"
   }
 
   override fun reset() {
@@ -96,6 +117,9 @@ class InfracostSettingsConfigurable : Configurable {
     serverPathField?.text = settings.serverPath
     cacheTTLSpinner?.value = settings.runParamsCacheTTLSeconds
     debugUIField?.text = settings.debugUIAddress
+    enableDiagnosticsCheckbox?.isSelected = settings.enableDiagnostics
+    debugCheckbox?.isSelected = settings.debug
+    traceLevelCombo?.selectedItem = settings.traceLevel
   }
 
   override fun disposeUIResources() {
@@ -103,5 +127,8 @@ class InfracostSettingsConfigurable : Configurable {
     serverPathField = null
     cacheTTLSpinner = null
     debugUIField = null
+    enableDiagnosticsCheckbox = null
+    debugCheckbox = null
+    traceLevelCombo = null
   }
 }
