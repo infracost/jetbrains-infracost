@@ -276,6 +276,7 @@ class InfracostToolWindowPanel(
     }
 
     if (data.resource == null && !data.scanning) {
+      lastParams = null
       showDefaultView()
       return
     }
@@ -757,6 +758,7 @@ class InfracostToolWindowPanel(
         selectedOrg = org
         ApplicationManager.getApplication().invokeLater {
           if (!project.isDisposed) {
+            updateFooter()
             @Suppress("UnstableApiUsage")
             LspServerManager.getInstance(project)
                 .stopAndRestartIfNeeded(InfracostLspServerSupportProvider::class.java)

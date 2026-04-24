@@ -13,7 +13,7 @@ import java.nio.file.Path
 import org.eclipse.lsp4j.services.LanguageServer
 
 class InfracostLspServerSupportProvider : LspServerSupportProvider {
-  private val descriptors = java.util.concurrent.ConcurrentHashMap<Project, InfracostLspServerDescriptor>()
+  private val descriptors = com.intellij.util.containers.ContainerUtil.createConcurrentWeakMap<Project, InfracostLspServerDescriptor>()
 
   override fun fileOpened(
       project: Project,
