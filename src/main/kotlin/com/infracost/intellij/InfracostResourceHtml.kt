@@ -78,18 +78,7 @@ data class StatusInfo(
     val violationCount: Int? = 0,
     val tagIssueCount: Int? = 0,
     val configFound: Boolean? = false,
-)
-
-data class FileSummaryResource(
-    val name: String = "",
-    val line: Int = 0,
-    val monthlyCost: String = "",
-    val policyIssues: Int = 0,
-    val tagIssues: Int = 0,
-)
-
-data class FileSummaryResult(
-    val resources: List<FileSummaryResource>?,
+    val triggeredGuardrails: List<GuardrailStatus>? = null,
 )
 
 data class ThemeColors(
@@ -176,6 +165,12 @@ object InfracostResourceHtml {
   private fun cmd(sendCommand: (String) -> String, command: String): String =
       escAttr(sendCommand(command))
 
+  fun renderLoginFailed(sendCommand: (String) -> String): String =
+      renderPage(
+          """<div class="state"><p>Login failed. Please try again.</p>
+             <button class="login-btn" onclick="${cmd(sendCommand, "login")}">Try Again</button></div>"""
+      )
+
   fun renderLogin(sendCommand: (String) -> String): String =
       renderPage(
           """
@@ -191,22 +186,31 @@ object InfracostResourceHtml {
     """
       )
 
+  fun renderLoginWaiting(userCode: String, sendCommand: (String) -> String): String =
+      renderPage(
+          """
+        <div class="state">
+          <p>Verify the code in your browser matches:</p>
+          <div class="user-code">${esc(userCode)}</div>
+          <p style="color:var(--fg-dim);">Waiting for login to complete...</p>
+          <button class="login-btn" onclick="${cmd(sendCommand, "cancelLogin")}">Cancel</button>
+        </div>
+    """
+      )
+
   fun renderResult(
       data: ResourceDetailsResult,
       sendCommand: (String) -> String,
-      resources: List<FileSummaryResource>? = null,
   ): String {
     if (data.scanning) return renderPage("""<div class="state">Scanning...</div>""")
     if (data.needsLogin == true) return renderLogin(sendCommand)
-    val resource =
-        data.resource ?: return renderEmpty(sendCommand, loggedIn = true, resources = resources)
+    val resource = data.resource ?: return renderEmpty(sendCommand, loggedIn = true)
     return renderPage(renderResource(resource, sendCommand))
   }
 
   fun renderEmpty(
       sendCommand: (String) -> String,
       loggedIn: Boolean? = null,
-      resources: List<FileSummaryResource>? = null,
   ): String {
     val statusText =
         when (loggedIn) {
@@ -215,28 +219,8 @@ object InfracostResourceHtml {
           null -> ""
         }
 
-    val resourcesHtml =
-        if (!resources.isNullOrEmpty()) {
-          val items =
-              resources.joinToString("") { r ->
-                val badges = buildString {
-                  append("""<span class="badge">${esc(r.monthlyCost)}/mo</span>""")
-                  if (r.policyIssues > 0) {
-                    append("""<span class="badge high">${r.policyIssues} policy</span>""")
-                  }
-                  if (r.tagIssues > 0) {
-                    append("""<span class="badge medium">${r.tagIssues} tag</span>""")
-                  }
-                }
-                """<li><a href="#" onclick="${cmd(sendCommand, "revealResource:${r.line}")}; return false;"><div class="resource-link-name">${esc(r.name)}</div><div class="badges">$badges</div></a></li>"""
-              }
-          """<div class="section"><strong>Resources</strong><ul class="issue-list">$items</ul></div>"""
-        } else {
-          """<div class="state">No resource selected</div>"""
-        }
-
     return renderPage(
-        """$resourcesHtml
+        """<div class="state">No resource selected</div>
 <div class="empty-links">
   <a href="#" onclick="${cmd(sendCommand, "troubleshoot")}; return false;">Troubleshooting</a>
   <a href="https://infracost.io/community-chat">Join the Slack</a>
@@ -305,6 +289,7 @@ object InfracostResourceHtml {
     <li><a href="#" onclick="${cmd(sendCommand, "restartLsp")}; return false;">Restart language server</a></li>
     <li><a href="#" onclick="${cmd(sendCommand, "viewLogs")}; return false;">View logs</a></li>
     <li><a href="#" onclick="${cmd(sendCommand, "generateBundle")}; return false;">Generate support bundle</a></li>
+    <li><a href="#" onclick="${cmd(sendCommand, "openSettings")}; return false;">Open settings</a></li>
   </ul>
 </div>
 """
@@ -649,12 +634,6 @@ object InfracostResourceHtml {
           .empty-links a { color: var(--link); text-decoration: none; }
           .empty-links a:hover { text-decoration: underline; }
           .login-status { margin-top: 4px; font-size: 0.9em; }
-          .issue-list { list-style: none; padding: 0; margin: 6px 0 0 0; }
-          .issue-list li { padding: 4px 0; border-bottom: 1px solid var(--border); }
-          .issue-list li:last-child { border-bottom: none; }
-          .issue-list a { color: var(--fg); text-decoration: none; display: block; font-size: 0.9em; line-height: 1.4; }
-          .issue-list a:hover { color: var(--link); }
-          .resource-link-name { word-break: break-all; }
           .back-nav { margin-bottom: 8px; }
           .back-nav a { color: var(--link); text-decoration: none; font-size: 0.9em; }
           .back-nav a:hover { text-decoration: underline; }
@@ -665,6 +644,17 @@ object InfracostResourceHtml {
           .project-list li { padding: 2px 0; }
           .status-indicators { display: flex; flex-direction: column; gap: 4px; font-size: 0.9em; }
           .policy-message { margin-top: 4px; font-size: 0.9em; }
+          .user-code {
+            font-family: "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            padding: 12px;
+            margin: 12px 0;
+            background: var(--card-bg);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+          }
         </style>
         </head>
         <body>$body</body>

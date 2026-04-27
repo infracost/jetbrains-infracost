@@ -34,4 +34,11 @@
         <statusBarWidgetFactory implementation="com.infracost.intellij.InfracostStatusBarWidgetFactory"
                                 id="InfracostStatusBar"/>
     </extensions>
+
+    <actions>
+        <action id="Infracost.Logout" class="com.infracost.intellij.InfracostLogoutAction"
+                text="Infracost: Logout" description="Logout from Infracost"/>
+        <action id="Infracost.SwitchOrg" class="com.infracost.intellij.InfracostSwitchOrgAction"
+                text="Infracost: Switch Organization" description="Switch Infracost organization"/>
+    </actions>
 </idea-plugin>

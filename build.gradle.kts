@@ -161,3 +161,19 @@ intellijPlatform {
 
   publishing { token = providers.environmentVariable("PUBLISH_TOKEN") }
 }
+
+providers.gradleProperty("localIdePath").orNull?.let { idePath ->
+  intellijPlatformTesting {
+    runIde {
+      register("runLocalIde") {
+        localPath = file(idePath)
+        task {
+          val nioFsJar = file("$idePath/Contents/lib/nio-fs.jar")
+          if (nioFsJar.exists()) {
+            jvmArgs("-Xbootclasspath/a:${nioFsJar.absolutePath}")
+          }
+        }
+      }
+    }
+  }
+}
