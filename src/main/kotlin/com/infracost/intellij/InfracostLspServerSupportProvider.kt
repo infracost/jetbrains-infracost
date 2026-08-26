@@ -1,8 +1,8 @@
 package com.infracost.intellij
 
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.ide.impl.isTrusted
 import com.intellij.ide.plugins.PluginManagerCore
-import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -152,7 +152,7 @@ class InfracostLspServerDescriptor(project: Project) :
      * just cloned to read, so an untrusted project forces it back off.
      */
     fun isBicepEnabled(project: Project): Boolean =
-        InfracostSettingsState.instance.enableBicep && TrustedProjects.isProjectTrusted(project)
+        InfracostSettingsState.instance.enableBicep && project.isTrusted()
 
     fun isSupportedFile(file: VirtualFile, bicepEnabled: Boolean = false): Boolean {
       if (file.extension == "tf") return true
