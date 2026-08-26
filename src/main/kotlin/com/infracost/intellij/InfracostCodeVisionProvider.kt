@@ -33,7 +33,8 @@ class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
   override fun computeCodeVision(editor: Editor, uiData: Unit): CodeVisionState {
     val project = editor.project ?: return READY_EMPTY
     val file = FileDocumentManager.getInstance().getFile(editor.document) ?: return READY_EMPTY
-    if (!InfracostLspServerDescriptor.isSupportedFile(file)) return READY_EMPTY
+    val bicepEnabled = InfracostLspServerDescriptor.isBicepEnabled(project)
+    if (!InfracostLspServerDescriptor.isSupportedFile(file, bicepEnabled)) return READY_EMPTY
 
     val servers =
         LspServerManager.getInstance(project)

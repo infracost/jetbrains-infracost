@@ -2,6 +2,7 @@ package com.infracost.intellij
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -20,7 +21,8 @@ class InfracostLspServerSupportProvider : LspServerSupportProvider {
       file: VirtualFile,
       serverStarter: LspServerSupportProvider.LspServerStarter,
   ) {
-    if (InfracostLspServerDescriptor.isSupportedFile(file)) {
+    val bicepEnabled = InfracostLspServerDescriptor.isBicepEnabled(project)
+    if (InfracostLspServerDescriptor.isSupportedFile(file, bicepEnabled)) {
       val desc = descriptors.getOrPut(project) { InfracostLspServerDescriptor(project) }
       serverStarter.ensureServerStarted(desc)
     }
@@ -30,7 +32,8 @@ class InfracostLspServerSupportProvider : LspServerSupportProvider {
 class InfracostLspServerDescriptor(project: Project) :
     ProjectWideLspServerDescriptor(project, "Infracost") {
 
-  override fun isSupportedFile(file: VirtualFile): Boolean = Companion.isSupportedFile(file)
+  override fun isSupportedFile(file: VirtualFile): Boolean =
+      Companion.isSupportedFile(file, isBicepEnabled(project))
 
   override fun createInitializationOptions(): Any {
     val plugin = PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID))
@@ -39,6 +42,15 @@ class InfracostLspServerDescriptor(project: Project) :
         "clientName" to "jetbrains",
         "extensionVersion" to pluginVersion,
         "supportsCodeLens" to true,
+        // Sent in both states rather than only when on. The server reads an explicit
+        // value as the user's decision and an absent one as "whatever the environment
+        // says", so omitting false would let an INFRACOST_ENABLE_BICEP exported in the
+        // environment the IDE was launched from override a user who has this off.
+        //
+        // Passed as an init option rather than an environment variable in
+        // createCommandLine for the same reason: only the option can carry the
+        // explicit-off half of that contract.
+        "enableBicep" to isBicepEnabled(project),
     )
   }
 
@@ -130,10 +142,27 @@ class InfracostLspServerDescriptor(project: Project) :
     private fun envVarName(binaryName: String): String =
         binaryName.uppercase().replace('-', '_') + "_PATH"
 
-    fun isSupportedFile(file: VirtualFile): Boolean {
+    /**
+     * Whether Bicep files should be estimated in [project].
+     *
+     * Two independent gates. The setting itself is application-level
+     * ([InfracostSettingsState]), so a repository cannot switch it on by committing
+     * project settings. The trust check covers the other direction: someone who turned
+     * it on for their own repositories shouldn't have a compiler run over a project they
+     * just cloned to read, so an untrusted project forces it back off.
+     */
+    fun isBicepEnabled(project: Project): Boolean =
+        InfracostSettingsState.instance.enableBicep && TrustedProjects.isProjectTrusted(project)
+
+    fun isSupportedFile(file: VirtualFile, bicepEnabled: Boolean = false): Boolean {
       if (file.extension == "tf") return true
 
       val name = file.name.lowercase()
+      if (name.endsWith(".bicep") || name.endsWith(".bicepparam")) {
+        // Only worth starting the server for when the ARM plugin will actually claim
+        // the file; with the gate off a scan finds no project and nothing is shown.
+        return bicepEnabled
+      }
       if (name.endsWith(".yml") || name.endsWith(".yaml") || name.endsWith(".json")) {
         return CFN_PATTERNS.any { name.contains(it) }
       }
