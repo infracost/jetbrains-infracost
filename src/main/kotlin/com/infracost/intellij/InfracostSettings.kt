@@ -31,6 +31,17 @@ class InfracostSettingsState : PersistentStateComponent<InfracostSettingsState?>
   var debug: Boolean = false
   var traceLevel: String = "off"
 
+  /**
+   * Estimate Bicep files. Off by default because estimating one compiles it, which needs the
+   * Bicep CLI on PATH and downloads any modules it references from their registries.
+   *
+   * This state is application-level (see [instance]), so it is stored in the IDE configuration
+   * directory rather than in `.idea/` — a repository cannot enable it by committing project
+   * settings. [InfracostLspServerDescriptor.isBicepEnabled] adds the trusted-project check on
+   * top.
+   */
+  var enableBicep: Boolean = false
+
   override fun getState(): InfracostSettingsState = this
 
   override fun loadState(state: InfracostSettingsState) {
@@ -49,6 +60,7 @@ class InfracostSettingsConfigurable : Configurable {
   private var cacheTTLSpinner: JSpinner? = null
   private var debugUIField: JTextField? = null
   private var enableDiagnosticsCheckbox: JCheckBox? = null
+  private var enableBicepCheckbox: JCheckBox? = null
   private var debugCheckbox: JCheckBox? = null
   private var traceLevelCombo: JComboBox<String>? = null
 
@@ -70,6 +82,8 @@ class InfracostSettingsConfigurable : Configurable {
     debugUIField = JTextField()
 
     enableDiagnosticsCheckbox = JCheckBox("Show inline diagnostics")
+    enableBicepCheckbox =
+        JCheckBox("Estimate Bicep files (requires the Bicep CLI; downloads referenced modules)")
     debugCheckbox = JCheckBox("Enable debug logging")
     traceLevelCombo = JComboBox(arrayOf("off", "messages", "verbose"))
 
@@ -78,6 +92,7 @@ class InfracostSettingsConfigurable : Configurable {
             .addLabeledComponent(JBLabel("Server path:"), serverPathField!!, 1, true)
             .addLabeledComponent(JBLabel("Cache TTL (seconds):"), cacheTTLSpinner!!, 1, false)
             .addComponent(enableDiagnosticsCheckbox!!, 1)
+            .addComponent(enableBicepCheckbox!!, 1)
             .addComponent(debugCheckbox!!, 1)
             .addLabeledComponent(JBLabel("Trace level:"), traceLevelCombo!!, 1, false)
             .addLabeledComponent(JBLabel("Debug UI address:"), debugUIField!!, 1, false)
@@ -98,6 +113,7 @@ class InfracostSettingsConfigurable : Configurable {
         (ttl.value as Int) != settings.runParamsCacheTTLSeconds ||
         debugUI.text != settings.debugUIAddress ||
         enableDiagnosticsCheckbox?.isSelected != settings.enableDiagnostics ||
+        enableBicepCheckbox?.isSelected != settings.enableBicep ||
         debugCheckbox?.isSelected != settings.debug ||
         (traceLevelCombo?.selectedItem as? String) != settings.traceLevel
   }
@@ -108,6 +124,7 @@ class InfracostSettingsConfigurable : Configurable {
     settings.runParamsCacheTTLSeconds = (cacheTTLSpinner?.value as? Int) ?: return
     settings.debugUIAddress = debugUIField?.text ?: return
     settings.enableDiagnostics = enableDiagnosticsCheckbox?.isSelected ?: true
+    settings.enableBicep = enableBicepCheckbox?.isSelected ?: false
     settings.debug = debugCheckbox?.isSelected ?: false
     settings.traceLevel = (traceLevelCombo?.selectedItem as? String) ?: "off"
   }
@@ -118,6 +135,7 @@ class InfracostSettingsConfigurable : Configurable {
     cacheTTLSpinner?.value = settings.runParamsCacheTTLSeconds
     debugUIField?.text = settings.debugUIAddress
     enableDiagnosticsCheckbox?.isSelected = settings.enableDiagnostics
+    enableBicepCheckbox?.isSelected = settings.enableBicep
     debugCheckbox?.isSelected = settings.debug
     traceLevelCombo?.selectedItem = settings.traceLevel
   }
@@ -128,6 +146,7 @@ class InfracostSettingsConfigurable : Configurable {
     cacheTTLSpinner = null
     debugUIField = null
     enableDiagnosticsCheckbox = null
+    enableBicepCheckbox = null
     debugCheckbox = null
     traceLevelCombo = null
   }

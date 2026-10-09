@@ -62,6 +62,15 @@ Go to `Settings` -> `Tools` -> `Infracost` to configure:
 
 - **Server path** — path to the `infracost-ls` binary. Leave empty to use the bundled binary or find it on your PATH.
 - **Cache TTL** — how long (in seconds) to cache run parameters between API calls. Defaults to 300.
+- **Estimate Bicep files** — off by default. See [Bicep](#bicep) below.
+
+### Bicep
+
+Bicep cost estimates are off by default, because estimating a Bicep file compiles it — which requires the [Bicep CLI](https://aka.ms/bicep-install) on your `PATH` and downloads any modules the file references from their registries.
+
+The setting is stored at the IDE level rather than per project, so a repository cannot switch it on by committing `.idea/` settings. It also stays off in projects you haven't trusted, so enabling it for your own repositories doesn't make a compiler run over the next project you clone to read.
+
+With the setting off, `.bicep` and `.bicepparam` files show no cost estimates. ARM JSON is estimated either way, including JSON that a Bicep build produced.
 
 ## How it works
 
