@@ -2,6 +2,7 @@ package com.infracost.intellij
 
 import com.google.gson.Gson
 import com.intellij.codeInsight.codeVision.CodeVisionAnchorKind
+import com.intellij.codeInsight.codeVision.CodeVisionHost
 import com.intellij.codeInsight.codeVision.CodeVisionProvider
 import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
 import com.intellij.codeInsight.codeVision.CodeVisionState
@@ -9,11 +10,9 @@ import com.intellij.codeInsight.codeVision.CodeVisionState.Companion.READY_EMPTY
 import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.platform.lsp.api.LspServerManager
@@ -50,7 +49,7 @@ class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
 
     val lenses =
         try {
-          server.sendRequestSync { it.textDocumentService.codeLens(params) }
+          server.sendRequestSync(LSP_TIMEOUT_MS) { it.textDocumentService.codeLens(params) }
         } catch (e: Exception) {
           LOG.warn("codeLens request failed", e)
           return CodeVisionState.NotReady
@@ -93,7 +92,7 @@ class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
               .getServersForProvider(InfracostLspServerSupportProvider::class.java)
       val server = servers.firstOrNull() ?: return@executeOnPooledThread
       try {
-        val response = server.sendRequestSync {
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) {
           (it as InfracostLanguageServer).resourceDetails(ResourceDetailsParams(uri, line))
         }
         val gson = Gson()
@@ -109,18 +108,13 @@ class InfracostCodeVisionProvider : CodeVisionProvider<Unit> {
     const val ID = "infracost.codelens"
     private val LOG = Logger.getInstance(InfracostCodeVisionProvider::class.java)
 
+    // Editing the document to refresh lenses triggers autosave → didSave → rescan, looping forever.
     fun forceRefresh(project: Project) {
       ApplicationManager.getApplication().invokeLater {
         if (project.isDisposed) return@invokeLater
-        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return@invokeLater
-        val document = editor.document
-        ApplicationManager.getApplication().runWriteAction {
-          CommandProcessor.getInstance().runUndoTransparentAction {
-            val len = document.textLength
-            document.insertString(len, " ")
-            document.deleteString(len, len + 1)
-          }
-        }
+        project
+            .getService(CodeVisionHost::class.java)
+            .invalidateProvider(CodeVisionHost.LensInvalidateSignal(null, listOf(ID)))
       }
     }
   }

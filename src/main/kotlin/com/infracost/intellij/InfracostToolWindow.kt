@@ -74,7 +74,11 @@ class InfracostToolWindowFactory : ToolWindowFactory, DumbAware {
           val p = InfracostToolWindowPanel(project, browser)
           browser.loadHTML(InfracostResourceHtml.renderEmpty(p.sendCommand))
           p
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+          LOG.warn("JCEF browser unavailable, falling back", e)
+          InfracostToolWindowPanel(project, null)
+        } catch (e: LinkageError) {
+          LOG.warn("JCEF browser unavailable, falling back", e)
           InfracostToolWindowPanel(project, null)
         }
 
@@ -102,6 +106,7 @@ class InfracostToolWindowFactory : ToolWindowFactory, DumbAware {
 
   companion object {
     const val ID = "Infracost"
+    private val LOG = Logger.getInstance(InfracostToolWindowFactory::class.java)
     val PANEL_KEY =
         com.intellij.openapi.util.Key.create<InfracostToolWindowPanel>("infracost.panel")
 
@@ -296,7 +301,7 @@ class InfracostToolWindowPanel(
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
-        val response = server.sendRequestSync {
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) {
           (it as InfracostLanguageServer).resourceDetails(params)
         }
         val gson = GSON
@@ -348,7 +353,7 @@ class InfracostToolWindowPanel(
           retryCheckAuthStatus(retriesLeft)
           return@executeOnPooledThread
         }
-        val response = server.sendRequestSync {
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) {
           (it as InfracostLanguageServer).resourceDetails(ResourceDetailsParams("", 0))
         }
         val gson = GSON
@@ -670,7 +675,7 @@ class InfracostToolWindowPanel(
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
         val response =
-            server.sendRequestSync { (it as InfracostLanguageServer).workspaceSummary() }
+            server.sendRequestSync(LSP_TIMEOUT_MS) { (it as InfracostLanguageServer).workspaceSummary() }
         val gson = GSON
         val result: WorkspaceSummaryResult? =
             gson.fromJson(gson.toJson(response), WorkspaceSummaryResult::class.java)
@@ -695,7 +700,7 @@ class InfracostToolWindowPanel(
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
-        val response = server.sendRequestSync { (it as InfracostLanguageServer).status() }
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) { (it as InfracostLanguageServer).status() }
         val gson = GSON
         val status: StatusInfo? =
             gson.fromJson(gson.toJson(response), StatusInfo::class.java)
@@ -713,7 +718,7 @@ class InfracostToolWindowPanel(
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
-        val response = server.sendRequestSync { (it as InfracostLanguageServer).orgs() }
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) { (it as InfracostLanguageServer).orgs() }
         val gson = GSON
         val result: OrgInfo? = gson.fromJson(gson.toJson(response), OrgInfo::class.java)
         val orgs = result?.organizations ?: return@executeOnPooledThread
@@ -752,7 +757,7 @@ class InfracostToolWindowPanel(
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
-        server.sendRequestSync {
+        server.sendRequestSync(LSP_TIMEOUT_MS) {
           (it as InfracostLanguageServer).selectOrg(SelectOrgParams(org.id))
         }
         selectedOrg = org
@@ -774,7 +779,7 @@ class InfracostToolWindowPanel(
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
-        server.sendRequestSync { (it as InfracostLanguageServer).logout() }
+        server.sendRequestSync(LSP_TIMEOUT_MS) { (it as InfracostLanguageServer).logout() }
         ApplicationManager.getApplication().invokeLater {
           if (!project.isDisposed) {
             lastParams = null
@@ -793,7 +798,7 @@ class InfracostToolWindowPanel(
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
-        val response = server.sendRequestSync { (it as InfracostLanguageServer).login() }
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) { (it as InfracostLanguageServer).login() }
         val gson = GSON
         val result: LoginResult? = gson.fromJson(gson.toJson(response), LoginResult::class.java)
         if (result == null) {
@@ -829,7 +834,7 @@ class InfracostToolWindowPanel(
           }
           return@executeOnPooledThread
         }
-        val response = server.sendRequestSync { (it as InfracostLanguageServer).status() }
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) { (it as InfracostLanguageServer).status() }
         val gson = GSON
         val status = gson.fromJson(gson.toJson(response), StatusInfo::class.java) ?: StatusInfo()
         ApplicationManager.getApplication().invokeLater {
@@ -873,7 +878,7 @@ class InfracostToolWindowPanel(
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
-        val response = server.sendRequestSync {
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) {
           (it as InfracostLanguageServer).resourceDetails(params)
         }
         val gson = GSON
@@ -902,7 +907,7 @@ class InfracostToolWindowPanel(
     ApplicationManager.getApplication().executeOnPooledThread {
       try {
         val server = getLspServer() ?: return@executeOnPooledThread
-        val response = server.sendRequestSync {
+        val response = server.sendRequestSync(LSP_TIMEOUT_MS) {
           (it as InfracostLanguageServer).resourceDetails(params)
         }
         val gson = GSON
@@ -947,7 +952,7 @@ class InfracostToolWindowPanel(
             com.intellij.openapi.application.ApplicationInfo.getInstance().fullVersion
 
         if (server != null) {
-          val response = server.sendRequestSync { (it as InfracostLanguageServer).status() }
+          val response = server.sendRequestSync(LSP_TIMEOUT_MS) { (it as InfracostLanguageServer).status() }
           val status: StatusInfo? = gson.fromJson(gson.toJson(response), StatusInfo::class.java)
           bundle["lspStatus"] = status ?: StatusInfo()
         }
