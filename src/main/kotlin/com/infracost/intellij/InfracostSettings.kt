@@ -58,10 +58,10 @@ class InfracostSettingsConfigurable : Configurable {
     serverPathField =
         TextFieldWithBrowseButton().apply {
           addBrowseFolderListener(
-              "Infracost LSP Binary",
-              "Path to infracost-ls binary. Leave empty to use PATH.",
               ProjectManager.getInstance().defaultProject,
-              FileChooserDescriptorFactory.createSingleFileDescriptor(),
+              FileChooserDescriptorFactory.createSingleFileDescriptor()
+                  .withTitle("Infracost LSP Binary")
+                  .withDescription("Path to infracost-ls binary. Leave empty to use PATH."),
           )
         }
 

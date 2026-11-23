@@ -51,6 +51,9 @@ data class WorkspaceSummaryResult(
     val files: List<WorkspaceSummaryFile>? = null,
 )
 
+// Passed explicitly: 2026.3 moved sendRequestSync to LspClient, so the $default helper is gone.
+internal const val LSP_TIMEOUT_MS = 10_000
+
 interface InfracostLanguageServer : LanguageServer {
   @JsonRequest("infracost/resourceDetails")
   fun resourceDetails(params: ResourceDetailsParams): CompletableFuture<Any>

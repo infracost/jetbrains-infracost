@@ -31,7 +31,7 @@ class UpdateAction(
                       servers.firstOrNull()
                           ?: throw IllegalStateException("Infracost LSP server not running")
 
-                  server.sendRequestSync { (it as InfracostLanguageServer).update() }
+                  server.sendRequestSync(LSP_TIMEOUT_MS) { (it as InfracostLanguageServer).update() }
 
                   ApplicationManager.getApplication().invokeLater {
                     if (project.isDisposed) return@invokeLater
